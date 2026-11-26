@@ -6,6 +6,12 @@ secondaryBackgroundColor = "#FFFFFF"
 textColor = "#26243A"
 font = "sans serif"
 
+[theme.sidebar]
+primaryColor = "#C7BAFF"
+backgroundColor = "#231F38"
+secondaryBackgroundColor = "#3E355D"
+textColor = "#F4F0FF"
+
 [server]
 headless = true
 
