@@ -252,7 +252,9 @@ def investigation(rows, page: int) -> None:
         if selection is not None and detail.button("Open claim details"):
             claim_detail(next(claim for claim in displayed if claim.claim_id == selection))
         slug = PAGES[page].lower().replace(" & ", "-").replace(" ", "-")
-        download.download_button("Export claims CSV", claims_csv(matches), f"rcm360-{slug}.csv", "text/csv")
+        download.download_button(
+            "Export claims CSV", lambda: claims_csv(matches), f"rcm360-{slug}.csv", "text/csv", on_click="ignore",
+        )
 
 
 def change_table_page(page: int) -> None:
@@ -315,6 +317,9 @@ def main() -> None:
         st.caption("This selection conditions the observed denial rate on claim outcomes. Clear outcome filters for cohort comparisons.")
     if page == 4:
         audit_page(metadata, claims, rows)
+        return
+    if not rows:
+        st.info("No claims match the current filters. Adjust the selections or use Reset filters to see the full cohort.")
         return
 
     claim_metrics(rows, page)

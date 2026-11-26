@@ -141,6 +141,24 @@ def test_dashboard_missing_and_empty_export(monkeypatch, tmp_path, claim_payload
     assert "zero records" in view.info[0].value
 
 
+def test_empty_filters_offer_recovery_and_keep_source_qa_available(monkeypatch, tmp_path, claim_payload, quality_payload):
+    monkeypatch.setattr(app, "DATA_DIR", tmp_path)
+    write_fixture(tmp_path, "claims.json", claim_payload)
+    write_fixture(tmp_path, "quality.json", quality_payload)
+    view = AppTest.from_function(run_dashboard).run()
+    view.selectbox(key="filter_payer").select("test_a").run()
+    view.selectbox(key="filter_status").select("denied").run()
+    assert not view.exception
+    assert len(view.info) == 1 and "No claims match the current filters" in view.info[0].value
+    assert not view.metric and not view.get("download_button")
+    view.radio(key="report_page").set_value("Data quality & QA").run()
+    assert not view.exception
+    assert view.metric[0].label == "Source rows"
+    next(button for button in view.button if button.label == "Reset filters").click().run()
+    assert view.selectbox(key="filter_payer").value is None
+    assert view.selectbox(key="filter_status").value is None
+
+
 def test_all_pages_retain_global_filters_and_clear_drill(monkeypatch, tmp_path, claim_payload, quality_payload):
     monkeypatch.setattr(app, "DATA_DIR", tmp_path)
     write_fixture(tmp_path, "claims.json", claim_payload)

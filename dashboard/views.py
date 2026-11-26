@@ -48,8 +48,9 @@ def label(value: str) -> str:
 
 
 def metric_row(items: list[tuple[str, str, str]]) -> None:
-    for column, (title, value, definition) in zip(st.columns(len(items)), items):
-        column.metric(title, value, help=definition, border=True)
+    with st.container(horizontal=True):
+        for title, value, definition in items:
+            st.metric(title, value, help=definition, border=True, width=240)
 
 
 def figure(height: int = 300) -> go.Figure:
