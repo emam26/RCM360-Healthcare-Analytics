@@ -37,3 +37,4 @@ data/test/**
 # Local logs and temporary exports
 *.log
 *.tmp
+/dashboard/data/.rcm360-export-*/

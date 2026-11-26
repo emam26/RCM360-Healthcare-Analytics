@@ -4,7 +4,7 @@
 
 RCM360 is an analytical portfolio project built from one historical, fully synthetic healthcare dataset. It demonstrates relational modeling, source verification, claim-grain SQL analysis, financial field reconciliation, data-quality controls, and an interactive Streamlit dashboard. It is not a production billing system and contains no live patient or payer data.
 
-> **Verification status:** the PostgreSQL schema, snapshot loader, 27-query analysis pack, and five-page dashboard are implemented. PostgreSQL has not yet been installed or run in this environment, so the SQL pack has not been executed against a server and PostgreSQL-reconciled JSON exports are not available. The dashboard reports that exports are missing instead of showing sample business metrics.
+> **Verification status:** the PostgreSQL schema, snapshot loader, 28-query analysis pack, exporter, and five-page dashboard are implemented. PostgreSQL has not yet been installed or run in this environment, so the SQL pack has not been executed against a server and PostgreSQL-reconciled JSON exports are not available. The dashboard reports that exports are missing instead of showing sample business metrics.
 
 ## At a glance
 
@@ -27,7 +27,7 @@ flowchart LR
     JSON --> UI[Streamlit + Shadcn UI + Plotly]
 ```
 
-PostgreSQL is the required execution and reconciliation layer. The dashboard reads the exported JSON files and does not connect to PostgreSQL. Since the data is historical, a hosted database and separate backend are unnecessary. The PostgreSQL-to-JSON exporter and final QA pipeline are still being completed.
+PostgreSQL is the required execution and reconciliation layer. The dashboard reads the exported JSON files and does not connect to PostgreSQL. Since the data is historical, a hosted database and separate backend are unnecessary. The exporter and QA pipeline are implemented; PostgreSQL execution is required before verified JSON files can be generated.
 
 ## Analytical guardrails
 
@@ -62,9 +62,10 @@ Use Python 3.11 and a local PostgreSQL server. PostgreSQL is not bundled with th
    ```
 
 5. After loading, run the read-only SQL analysis pack with `psql` as described in the [query catalog](sql/queries/README.md). Review every reconciliation result before interpreting findings.
-6. Generate validated exports after the export pipeline is available, then start the dashboard:
+6. Generate the validated JSON exports, then start the dashboard:
 
    ```powershell
+   .\.venv\Scripts\python.exe -m src.exports.dashboard_json
    .\.venv\Scripts\python.exe -m streamlit run dashboard/app.py
    ```
 
