@@ -8,3 +8,5 @@ ipykernel==7.4.0
 matplotlib==3.11.2
 seaborn==0.13.2
 pytest==9.2.0
+# Keep PostgreSQL grammar checks reproducible without requiring a server.
+pglast==7.25
