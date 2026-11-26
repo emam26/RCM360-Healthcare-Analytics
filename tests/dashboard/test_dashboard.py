@@ -1,8 +1,10 @@
 """Dashboard behavior with explicitly test-only, privacy-minimized exports."""
 
 import csv
+import html
 import io
 import json
+import re
 from datetime import date
 from decimal import Decimal
 
@@ -128,17 +130,40 @@ def write_fixture(directory, name, payload):
     (directory / name).write_text(json.dumps(payload), encoding="utf-8")
 
 
+def dashboard_kpis(view):
+    cards = {}
+    pattern = re.compile(r'data-kpi-label="([^"]*)" data-kpi-value="([^"]*)"')
+    for item in view.markdown:
+        match = pattern.search(item.value)
+        if match:
+            cards[html.unescape(match.group(1))] = html.unescape(match.group(2))
+    return cards
+
+
 def test_dashboard_missing_and_empty_export(monkeypatch, tmp_path, claim_payload):
     monkeypatch.setattr(app, "DATA_DIR", tmp_path)
     view = AppTest.from_function(run_dashboard).run()
     assert not view.exception
-    assert "claims.json export is missing" in view.warning[0].value
+    assert any("Validated dashboard data is unavailable" in item.value for item in view.markdown)
+    assert len(dashboard_kpis(view)) == 5
+    assert set(dashboard_kpis(view).values()) == {"—"}
     claim_payload["records"] = []
     claim_payload["metadata"]["record_count"] = 0
     write_fixture(tmp_path, "claims.json", claim_payload)
     view.run()
     assert not view.exception
-    assert "zero records" in view.info[0].value
+    assert any("zero records" in item.value for item in view.markdown)
+
+
+def test_missing_export_keeps_the_five_page_frame(monkeypatch, tmp_path):
+    monkeypatch.setattr(app, "DATA_DIR", tmp_path)
+    view = AppTest.from_function(run_dashboard).run()
+    for page in app.PAGES[1:]:
+        view.radio(key="report_page").set_value(page).run()
+        assert not view.exception
+        assert any(item.value == page for item in view.title)
+        assert len(dashboard_kpis(view)) == 5
+        assert set(dashboard_kpis(view).values()) == {"—"}
 
 
 def test_empty_filters_offer_recovery_and_keep_source_qa_available(monkeypatch, tmp_path, claim_payload, quality_payload):
@@ -147,16 +172,17 @@ def test_empty_filters_offer_recovery_and_keep_source_qa_available(monkeypatch, 
     write_fixture(tmp_path, "quality.json", quality_payload)
     view = AppTest.from_function(run_dashboard).run()
     view.selectbox(key="filter_payer").select("test_a").run()
-    view.selectbox(key="filter_status").select("denied").run()
+    view.selectbox(key="table_status").select("Denied").run()
     assert not view.exception
-    assert len(view.info) == 1 and "No claims match the current filters" in view.info[0].value
-    assert not view.metric and not view.get("download_button")
+    assert any("No matching claims" in item.value for item in view.info)
+    assert dashboard_kpis(view)["Total claims"] == "1"
+    assert view.get("download_button") and view.get("download_button")[0].disabled
     view.radio(key="report_page").set_value("Data quality & QA").run()
     assert not view.exception
-    assert view.metric[0].label == "Source rows"
+    assert "Source rows" in dashboard_kpis(view)
     next(button for button in view.button if button.label == "Reset filters").click().run()
     assert view.selectbox(key="filter_payer").value is None
-    assert view.selectbox(key="filter_status").value is None
+    assert view.selectbox(key="table_status").value == "All statuses"
 
 
 def test_all_pages_retain_global_filters_and_clear_drill(monkeypatch, tmp_path, claim_payload, quality_payload):
@@ -165,21 +191,22 @@ def test_all_pages_retain_global_filters_and_clear_drill(monkeypatch, tmp_path, 
     write_fixture(tmp_path, "quality.json", quality_payload)
     view = AppTest.from_function(run_dashboard).run()
     assert not view.exception
-    assert view.metric[0].value == "2"
+    assert dashboard_kpis(view)["Total claims"] == "2"
     view.selectbox(key="overview_reasons_choose").select("test_reason").run()
     assert not view.exception
     assert view.session_state["drill"] == ("denial_reason", "test_reason")
-    assert view.metric[0].value == "1"
+    assert dashboard_kpis(view)["Total claims"] == "1"
     view.selectbox(key="filter_payer").select("test_a").run()
     assert not view.exception
     assert view.session_state["drill"] is None
-    assert view.metric[0].value == "1"
+    assert dashboard_kpis(view)["Total claims"] == "1"
     for page in app.PAGES[1:]:
         view.radio(key="report_page").set_value(page).run()
         assert not view.exception
         assert view.selectbox(key="filter_payer").value == "test_a"
         assert any(title.value == page for title in view.title)
-    assert [tab.label for tab in view.tabs] == ["Original source QA", "Injected-error tests"]
+    assert "Original source rule results" in [item.label for item in view.expander]
+    assert "Injected-error test evidence" in [item.label for item in view.expander]
 
 
 def test_investigation_can_open_claim_and_reset_filters(monkeypatch, tmp_path, claim_payload):
@@ -187,7 +214,7 @@ def test_investigation_can_open_claim_and_reset_filters(monkeypatch, tmp_path, c
     write_fixture(tmp_path, "claims.json", claim_payload)
     view = AppTest.from_function(run_dashboard).run()
     view.text_input(key="claim_search").set_value("test-paid").run()
-    view.selectbox(key="detail_choice_0").select("TEST-PAID").run()
+    view.selectbox(key="detail_choice_0_0").select("TEST-PAID").run()
     next(button for button in view.button if button.label == "Open claim details").click().run()
     assert not view.exception
     assert any(item.value == "TEST-PAID" for item in view.subheader)
@@ -195,6 +222,78 @@ def test_investigation_can_open_claim_and_reset_filters(monkeypatch, tmp_path, c
     next(button for button in view.button if button.label == "Reset filters").click().run()
     assert not view.exception
     assert view.text_input(key="claim_search").value == ""
+
+
+def test_reporting_period_and_table_filters_have_separate_scope(monkeypatch, tmp_path, claim_payload):
+    claim_payload["records"][1]["submitted_at"] = "2025-04-02T12:00:00"
+    claim_payload["records"][1]["denied_at"] = "2025-04-04T12:00:00"
+    monkeypatch.setattr(app, "DATA_DIR", tmp_path)
+    write_fixture(tmp_path, "claims.json", claim_payload)
+
+    view = AppTest.from_function(run_dashboard).run()
+    assert not view.exception
+    view.selectbox(key="report_period").select("Q1 2025").run()
+    assert not view.exception
+    assert dashboard_kpis(view)["Total claims"] == "1"
+    table = next(item.value for item in view.dataframe if "Claim ID" in item.value.columns)
+    assert table["Claim ID"].tolist() == ["TEST-PAID"]
+
+    view.selectbox(key="report_period").select("All available dates").run()
+    view.selectbox(key="table_status").select("Denied").run()
+    assert not view.exception
+    assert dashboard_kpis(view)["Total claims"] == "2"  # table-only status does not change report KPIs
+    table = next(item.value for item in view.dataframe if "Claim ID" in item.value.columns)
+    assert table["Claim ID"].tolist() == ["TEST-DENIED"]
+
+
+def test_qa_register_and_export_are_limited_to_linked_original_findings(monkeypatch, tmp_path, claim_payload, quality_payload):
+    monkeypatch.setattr(app, "DATA_DIR", tmp_path)
+    write_fixture(tmp_path, "claims.json", claim_payload)
+    write_fixture(tmp_path, "quality.json", quality_payload)
+    view = AppTest.from_function(run_dashboard).run()
+    view.radio(key="report_page").set_value("Data quality & QA").run()
+    assert not view.exception
+    table = next(item.value for item in view.dataframe if "Data quality" in item.value.columns)
+    assert table["Claim ID"].tolist() == ["TEST-DENIED"]
+    assert not view.get("download_button")[0].disabled
+
+    metadata, claims = parse_claims(claim_payload)
+    quality = parse_quality(quality_payload, metadata, claims)
+    issues_by_claim = app.quality_issue_index(quality)
+    matches = app.table_matches(
+        claims, "test_reason", "All statuses", "Newest submission", issues_by_claim, flagged_only=True,
+    )
+    assert [claim.claim_id for claim in matches] == ["TEST-DENIED"]
+
+
+def test_investigation_paginates_six_rows_and_search_returns_all_matches(monkeypatch, tmp_path, claim_payload):
+    paid = claim_payload["records"][0]
+    claim_payload["records"] = [
+        dict(
+            paid, claim_id=f"TEST-ROW-{index:02d}", submitted_at=f"2025-01-{index:02d}T12:00:00",
+            paid_at=f"2025-01-{index + 2:02d}T12:00:00",
+        )
+        for index in range(1, 9)
+    ]
+    claim_payload["metadata"]["record_count"] = 8
+    monkeypatch.setattr(app, "DATA_DIR", tmp_path)
+    write_fixture(tmp_path, "claims.json", claim_payload)
+
+    view = AppTest.from_function(run_dashboard).run()
+    assert not view.exception
+    table = next(item.value for item in view.dataframe if "Claim ID" in item.value.columns)
+    assert len(table) == 6
+    next(button for button in view.button if button.label == "Next").click().run()
+    assert not view.exception
+    table = next(item.value for item in view.dataframe if "Claim ID" in item.value.columns)
+    assert table["Claim ID"].tolist() == ["TEST-ROW-02", "TEST-ROW-01"]
+    assert any("7–8 of 8 claims" in item.value for item in view.caption)
+
+    view.text_input(key="claim_search").set_value("TEST-ROW-08").run()
+    assert not view.exception
+    table = next(item.value for item in view.dataframe if "Claim ID" in item.value.columns)
+    assert table["Claim ID"].tolist() == ["TEST-ROW-08"]
+    assert any("1–1 of 1 claims" in item.value for item in view.caption)
 
 
 def test_pareto_uses_denied_claims_with_recorded_reasons(monkeypatch, tmp_path, claim_payload):
@@ -274,9 +373,9 @@ def test_revenue_status_reconciliation_displays_exact_sums(monkeypatch, tmp_path
         ("Pending", 0, "$0.00", "$0.00", "$0.00", "$0.00"),
         ("Total", 2, "$0.40", "$0.20", "$0.10", "$0.20"),
     ]
-    view.selectbox(key="filter_status").select("denied").run()
+    view.selectbox(key="table_status").select("Denied").run()
     filtered = next(table.value for table in view.dataframe if "Assigned patient responsibility" in table.value)
-    assert filtered.iloc[-1].tolist() == ["Total", 1, "$0.10", "$0.10", "$0.00", "$0.00"]
+    assert filtered.iloc[-1].tolist() == ["Total", 2, "$0.40", "$0.20", "$0.10", "$0.20"]
 
 
 def test_heatmap_hover_exposes_claim_counts_and_marks_small_cells(monkeypatch, tmp_path, claim_payload):
@@ -301,4 +400,4 @@ def test_heatmap_hover_exposes_claim_counts_and_marks_small_cells(monkeypatch, t
     view.selectbox(key="heatmap_encounter_choose").select("outpatient").run()
     assert not view.exception
     assert view.session_state["drill"] == ("encounter_type", "outpatient")
-    assert view.metric[0].value == "2"
+    assert dashboard_kpis(view)["Total claims"] == "2"

@@ -179,6 +179,6 @@ def test_evidence(quality: Quality) -> None:
         ("Detected findings", quantity(summary["detected_findings"]), "Expected findings detected by the rules."),
         ("Missed findings", quantity(summary["missed_findings"]), "Expected findings the rules missed."),
         ("Test rules passed", f"{summary['tests_passed']:,} / {summary['rules_total']:,}", "Rules detecting all expected findings with zero misses."),
-    ])
+    ], key="rcm-injected-test-kpis")
     st.subheader("Injected-test rule results")
     rule_table(quality.test_rules, "detection_rate")

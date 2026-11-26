@@ -61,7 +61,7 @@ See the [dataset profile](docs/dataset_profile.md), [data contract](docs/data_co
 
 ## Dashboard
 
-Five pages cover executive overview, claims and denials, revenue and payments, payer and provider comparisons, and data quality/QA. Global filters support submission dates, payer, provider, status, and encounter type. The claims table supports search, sorting, claim detail, drilldown, and CSV export. Financial fields remain separate, and small payer/provider cohorts are flagged.
+Five responsive pages follow the supplied indigo reference layout: executive overview, claims and denials, revenue and payments, payer and provider comparisons, and data quality/QA. Shared filters cover reporting period, payer, provider, and encounter type; the investigation table adds status, search, sorting, pagination, claim detail, drilldown, and filtered CSV export. QA findings remain separate from injected-error test evidence. Financial fields keep their source meanings, and small payer/provider cohorts are flagged.
 
 The UI uses an indigo palette aligned with the local design reference. The reference assets remain local and are not part of the public repository.
 

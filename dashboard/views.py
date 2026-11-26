@@ -3,12 +3,11 @@
 from collections import Counter
 from datetime import date
 from decimal import Decimal
+from html import escape
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from streamlit_shadcn_ui import v2 as ui
-
 from dashboard.model import STATUSES, denial_reason_pareto, group_by, ratio, summarize
 
 
@@ -47,10 +46,31 @@ def label(value: str) -> str:
     return value.replace("_", " ").capitalize()
 
 
-def metric_row(items: list[tuple[str, str, str]]) -> None:
-    with st.container(horizontal=True):
-        for title, value, definition in items:
-            st.metric(title, value, help=definition, border=True, width=240)
+def metric_row(items: list[tuple[str, str, str]], *, key: str = "rcm-kpis") -> None:
+    with st.container(key=key):
+        for column, (title, value, definition) in zip(st.columns(len(items)), items):
+            with column:
+                lowered = title.casefold()
+                tone = "red" if any(word in lowered for word in ("denial", "finding", "flagged")) else "indigo"
+                if "payment" in lowered or "time" in lowered:
+                    icon = '<path d="M3 12h3l2.3-6 4.2 12 2.3-6H21"/>'
+                elif "denial" in lowered or "finding" in lowered or "flagged" in lowered:
+                    icon = '<path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v4m0 3h.01"/>'
+                elif "pass" in lowered or "test" in lowered:
+                    icon = '<path d="m5 12 4 4L19 6"/><path d="M21 12a9 9 0 1 1-2.64-6.36"/>'
+                elif any(word in lowered for word in ("amount", "billed", "responsibility")):
+                    icon = '<path d="M12 2v20m5-16H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'
+                else:
+                    icon = '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/>'
+                card = (
+                    f'<article class="rcm-kpi-card" data-kpi-label="{escape(title)}" data-kpi-value="{escape(str(value))}">'
+                    f'<div class="rcm-kpi-top"><span class="rcm-kpi-label">{escape(title)}</span>'
+                    f'<span class="rcm-kpi-icon {tone}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" '
+                    f'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{icon}</svg></span></div>'
+                    f'<div class="rcm-kpi-value">{escape(str(value))}</div>'
+                    f'<div class="rcm-kpi-foot">{escape(definition)}</div></article>'
+                )
+                st.markdown(card, unsafe_allow_html=True)
 
 
 def figure(height: int = 300) -> go.Figure:
@@ -212,15 +232,27 @@ def status_chart(claims, key: str) -> None:
         return
     counts = Counter(claim.status for claim in claims)
     ordered = [status for status in STATUS_COLORS if counts[status]]
-    chart = figure(235)
+    chart = figure(220)
     chart.add_pie(
         labels=[label(status) for status in ordered], values=[counts[status] for status in ordered],
         hole=0.67, sort=False, marker=dict(colors=[STATUS_COLORS[status] for status in ordered]),
         textinfo="none", hovertemplate="%{label}<br>%{value:,} claims · %{percent}<extra></extra>",
     )
     chart.add_annotation(text=f"{len(claims):,}<br>claims", x=0.5, y=0.5, showarrow=False)
-    st.plotly_chart(chart, key=key, theme=None, config={"displaylogo": False})
-    drill_control(key, "status", ordered, "Filter by claim status")
+    chart_column, status_column = st.columns([1, 1.15], vertical_alignment="center")
+    with chart_column:
+        st.plotly_chart(chart, key=key, theme=None, config={"displaylogo": False}, width="stretch")
+    with status_column:
+        for status in ordered:
+            count = counts[status]
+            share = ratio(count, len(claims))
+            st.button(
+                f"{label(status)}  ·  {count:,}  ·  {rate(share)}",
+                key=f"{key}_{status}",
+                on_click=set_drill,
+                args=("status", status),
+                width="stretch",
+            )
 
 
 def comparison(claims, field: str, title: str) -> None:
@@ -314,10 +346,18 @@ def denial_heatmap(claims) -> None:
             drill_control("heatmap_encounter", "encounter_type", types, "Filter by encounter type")
 
 
-def denial_watchlist(denied) -> None:
+def denial_watchlist(denied, qa_issues=()) -> None:
     counts = Counter(claim.denial_reason for claim in denied if claim.denial_reason)
     if counts:
         reason, count = min(counts.items(), key=lambda item: (-item[1], item[0]))
-        ui.card(label(reason), description="Most frequent recorded denial reason", content=f"{count:,} denied claims")
+        st.markdown(f"**{label(reason)} is the leading recorded denial reason**")
+        st.caption(f"{count:,} denied claims in this selection. The label does not establish root cause.")
     else:
-        st.info("No recorded denial reasons match this view.")
+        st.caption("No recorded denial reasons match this view.")
+    qa_counts = Counter(issue["issue_category"] for issue in qa_issues)
+    if qa_counts:
+        issue, issue_count = min(qa_counts.items(), key=lambda item: (-item[1], item[0]))
+        st.markdown(f"**{label(issue)} leads linked source QA findings**")
+        st.caption(f"{issue_count:,} issue records in this filtered claim cohort.")
+    else:
+        st.caption("Linked original-source QA findings are unavailable or absent for this selection.")
