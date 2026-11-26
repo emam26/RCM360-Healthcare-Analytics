@@ -33,13 +33,14 @@ class DashboardExportTest(unittest.TestCase):
         claim_ids = {row["claim_id"] for row in cls.example_claims}
         encounter_ids = {row["encounter_id"] for row in cls.example_claims}
         raw = read_snapshot(RAW_DIR)
-        cls.sample = {
+        cls.sample = {table: [] for table in TABLE_COLUMNS} | {
             "claims": [row for row in raw["claims"] if row[claim_idx] in claim_ids],
             "encounters": [row for row in raw["encounters"] if row[0] in encounter_ids],
+            "providers": raw["providers"][:1],
         }
 
     def setUp(self):
-        self.source_count = 6
+        self.source_count = sum(len(rows) for rows in self.sample.values())
         self.expected = source_claims(self.sample)
         self.records = [
             {field: claim[field] for field in CLAIM_FIELDS} for claim in self.expected.values()
@@ -52,6 +53,10 @@ class DashboardExportTest(unittest.TestCase):
         self.engine = MagicMock()
         self.connection = self.engine.connect.return_value.__enter__.return_value
         self.cursor = self.connection.connection.driver_connection.cursor.return_value.__enter__.return_value
+        self.base_rows = {table: list(rows) for table, rows in self.sample.items()}
+        self.cursor.execute.return_value.fetchall.side_effect = [
+            self.base_rows[table] for table in TABLE_COLUMNS
+        ]
         self.db_rows = [dict(row) for row in self.expected.values()]
         lock, totals, records = [MagicMock() for _ in range(3)]
         totals.mappings.return_value.all.return_value = self.aggregates
@@ -75,7 +80,9 @@ class DashboardExportTest(unittest.TestCase):
         ]
         self.audit = {
             "original": {
-                "summary": {"source_rows": 6, "rules_total": 2, "rules_passed": 0, "issues_total": 2},
+                "summary": {
+                    "source_rows": self.source_count, "rules_total": 2, "rules_passed": 0, "issues_total": 2,
+                },
                 "rules": [
                     rule | {"tested_rows": 1, "issue_count": 1, "pass_rate": "0"}
                     for rule in (claim_rule, patient_rule)
@@ -84,7 +91,7 @@ class DashboardExportTest(unittest.TestCase):
             },
             "injected_test": {
                 "summary": {
-                    "source_rows": 6, "rules_total": 1, "expected_findings": 1,
+                    "source_rows": self.source_count, "rules_total": 1, "expected_findings": 1,
                     "detected_findings": 1, "missed_findings": 0, "tests_passed": 1,
                 },
                 "rules": [
@@ -123,6 +130,7 @@ class DashboardExportTest(unittest.TestCase):
             self.assertEqual(sorted(file.name for file in output.iterdir()), ["claims.json", "quality.json"])
         read.assert_called_once_with(RAW_DIR)
         run_audit.assert_called_once_with(self.cursor)
+        self.assertEqual(self.cursor.execute.call_count, len(TABLE_COLUMNS))
         self.connection.begin.assert_called_once_with()
         self.engine.dispose.assert_called_once_with()
         self.assertEqual(make_engine.call_args.args[0].drivername, "postgresql+psycopg")
@@ -131,7 +139,7 @@ class DashboardExportTest(unittest.TestCase):
         self.assertEqual(claims["metadata"]["source_sha256"], SOURCE_SHA256)
         self.assertEqual(claims["metadata"]["generated_at"], quality["metadata"]["generated_at"])
         self.assertTrue(claims["metadata"]["generated_at"].endswith("+00:00"))
-        self.assertEqual(quality["metadata"]["record_count"], 6)
+        self.assertEqual(quality["metadata"]["record_count"], self.source_count)
         for row in claims["records"]:
             self.assertEqual(set(row), set(CLAIM_FIELDS))
             original = self.expected[row["claim_id"]]
@@ -168,6 +176,23 @@ class DashboardExportTest(unittest.TestCase):
         self.db_rows[1] = original | {"provider_id": "unexpected-provider"}
         with self.assertRaisesRegex(ValueError, "view record differs"):
             reconcile_claims(self.connection, self.expected)
+
+    def test_same_count_nonclaim_source_drift_cannot_receive_pinned_provenance(self):
+        provider = list(self.base_rows["providers"][0])
+        provider[TABLE_COLUMNS["providers"].index("specialty")] = "changed-specialty"
+        self.base_rows["providers"][0] = tuple(provider)
+        with (
+            TemporaryDirectory() as directory,
+            patch("src.exports.dashboard_json.read_snapshot", return_value=self.sample),
+            patch("src.exports.dashboard_json.create_engine", return_value=self.engine),
+            patch("src.exports.dashboard_json.run_quality") as run_audit,
+        ):
+            output = Path(directory)
+            self._old_pair(output)
+            with self.assertRaisesRegex(ValueError, r"rcm360\.providers rows differ from the approved snapshot"):
+                export_dashboard("postgresql://example/rcm360", RAW_DIR, output)
+            self._assert_old_pair(output)
+        run_audit.assert_not_called()
 
     def test_unverified_archive_never_opens_a_database_connection(self):
         with TemporaryDirectory() as directory, patch("src.exports.dashboard_json.create_engine") as connect:

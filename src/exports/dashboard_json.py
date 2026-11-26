@@ -17,6 +17,7 @@ from sqlalchemy.pool import NullPool
 
 from dashboard.model import SCHEMA_VERSION, parse_claims
 from dashboard.quality import parse_quality
+from src.etl.load_postgres import verify_loaded_snapshot
 from src.etl.source import SOURCE_SHA256, read_snapshot
 from src.exports.reconcile import DECIMAL_FIELDS, reconcile_claims, source_claims
 from src.validation.audit import public_results, run_quality
@@ -154,6 +155,7 @@ def export_dashboard(database_url: str, raw_dir: Path, output_dir: Path) -> int:
                 connection.exec_driver_sql(EXPORT_LOCK_SQL).close()
                 records = reconcile_claims(connection, expected)
                 with connection.connection.driver_connection.cursor() as cursor:
+                    verify_loaded_snapshot(cursor, snapshot)
                     audit = run_quality(cursor)
             claims, quality = build_payloads(records, audit, source_count)
             write_payloads(output_dir, claims, quality)

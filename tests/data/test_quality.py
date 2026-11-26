@@ -5,7 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
-from src.etl.source import TABLE_COLUMNS
+from src.etl.source import SOURCE_SHA256, TABLE_COLUMNS
 from src.validation.audit import (
     Evaluation,
     _run_case,
@@ -170,7 +170,8 @@ class QualityAuditTest(unittest.TestCase):
         self.assertEqual(report["original"]["issues"], audit["original"]["issues"])
         self.assertEqual(report["injected_test"]["issues"], audit["injected_test"]["issues"])
         self.assertEqual(report["metadata"]["record_count"], 4)
-        self.assertIn("source_sha256", report["metadata"])
+        self.assertEqual(report["metadata"]["expected_source_sha256"], SOURCE_SHA256)
+        self.assertIsNone(report["metadata"]["source_sha256"])
 
     def test_local_report_replacement_failure_preserves_previous_report(self):
         audit = {

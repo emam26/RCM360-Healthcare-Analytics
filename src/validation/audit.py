@@ -32,7 +32,8 @@ def write_local_report(path: Path, audit: dict) -> None:
     payload = {
         "metadata": {
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "source_sha256": SOURCE_SHA256,
+            "expected_source_sha256": SOURCE_SHA256,
+            "source_sha256": None,
             "record_count": audit["original"]["summary"]["source_rows"],
             "report_scope": "local full original and injected-test audit",
         },

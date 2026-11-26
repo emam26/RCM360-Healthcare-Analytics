@@ -3,6 +3,7 @@
 import argparse
 import os
 import sys
+from collections import Counter
 from pathlib import Path
 
 import psycopg
@@ -13,6 +14,19 @@ from src.etl.source import SOURCE_SHA256, TABLE_COLUMNS, SourceRow, read_snapsho
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_SQL = ROOT / "sql" / "schema" / "001_source_tables.sql"
 VIEW_SQL = ROOT / "sql" / "views" / "001_claim_analytics.sql"
+
+
+def read_source_rows(cursor: psycopg.Cursor, table: str) -> list[SourceRow]:
+    columns = sql.SQL(", ").join(map(sql.Identifier, TABLE_COLUMNS[table]))
+    statement = sql.SQL("SELECT {} FROM {}").format(columns, sql.Identifier("rcm360", table))
+    return cursor.execute(statement).fetchall()
+
+
+def verify_loaded_snapshot(cursor: psycopg.Cursor, snapshot: dict[str, list[SourceRow]]) -> None:
+    """Compare every source table in the caller's stable transaction snapshot."""
+    for table in TABLE_COLUMNS:
+        if Counter(read_source_rows(cursor, table)) != Counter(snapshot[table]):
+            raise ValueError(f"PostgreSQL rcm360.{table} rows differ from the approved snapshot")
 
 
 def load_snapshot(cursor: psycopg.Cursor, snapshot: dict[str, list[SourceRow]]) -> list[str]:
@@ -29,14 +43,12 @@ def load_snapshot(cursor: psycopg.Cursor, snapshot: dict[str, list[SourceRow]]) 
     )
 
     empty_tables = []
-    for table, fields in TABLE_COLUMNS.items():
-        columns = sql.SQL(", ").join(map(sql.Identifier, fields))
-        select = sql.SQL("SELECT {} FROM {}").format(columns, tables[table])
-        existing = cursor.execute(select).fetchall()
+    for table in TABLE_COLUMNS:
+        existing = read_source_rows(cursor, table)
         expected = snapshot[table]
         if not existing:
             empty_tables.append(table)
-        elif len(existing) != len(expected) or set(existing) != set(expected):
+        elif Counter(existing) != Counter(expected):
             raise ValueError(f"Existing rcm360.{table} rows differ from the approved snapshot")
 
     for table in empty_tables:
@@ -46,10 +58,7 @@ def load_snapshot(cursor: psycopg.Cursor, snapshot: dict[str, list[SourceRow]]) 
             for row in snapshot[table]:
                 copy.write_row(row)
 
-        select = sql.SQL("SELECT {} FROM {}").format(columns, tables[table])
-        loaded = cursor.execute(select).fetchall()
-        expected = snapshot[table]
-        if len(loaded) != len(expected) or set(loaded) != set(expected):
+        if Counter(read_source_rows(cursor, table)) != Counter(snapshot[table]):
             raise ValueError(f"Loaded rcm360.{table} rows differ from the approved snapshot")
 
     cursor.execute(VIEW_SQL.read_text(encoding="utf-8"), prepare=False)
