@@ -1,0 +1,7 @@
+interface:
+  display_name: "Agent Teamwork"
+  short_description: "Coordinate focused Codex agents across RCM360"
+  default_prompt: "Use $agent-teamwork to route and integrate bounded project work."
+
+policy:
+  allow_implicit_invocation: true

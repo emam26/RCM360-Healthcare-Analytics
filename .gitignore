@@ -1,0 +1,28 @@
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Locally retained source data and generated staging/test data may contain
+# synthetic patient identifiers; keep them out of public commits.
+data/raw/**
+!data/raw/README.md
+data/processed/**
+data/test/**
+
+# Local logs and temporary exports
+*.log
+*.tmp

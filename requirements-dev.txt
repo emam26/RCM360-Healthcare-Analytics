@@ -1,0 +1,10 @@
+-r requirements.txt
+
+# Local ETL, PostgreSQL, EDA notebooks, and project tests.
+SQLAlchemy==2.1.9
+psycopg[binary]==3.3.9
+notebook==7.6.5
+ipykernel==7.4.0
+matplotlib==3.11.2
+seaborn==0.13.2
+pytest==9.2.0

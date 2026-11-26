@@ -1,0 +1,9 @@
+# Streamlit Community Cloud runtime; the dashboard consumes validated JSON.
+# The Shadcn UI 1.5.0 maintainer documents this verified host pair; newer
+# Starlette 1.10 has a reported intermittent component-asset serving issue.
+streamlit==1.60.0
+starlette==1.3.1
+streamlit-shadcn-ui==1.5.0
+plotly==7.2.0
+pandas==3.1.1
+numpy==2.4.6
