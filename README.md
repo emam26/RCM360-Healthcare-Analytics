@@ -2,102 +2,157 @@
 
 **Healthcare Revenue Cycle Analytics & Data Quality Intelligence**
 
-RCM360 is an analytical portfolio project built from one historical, fully synthetic healthcare dataset. It demonstrates relational modeling, source verification, claim-grain SQL analysis, financial field reconciliation, data-quality controls, and an interactive Streamlit dashboard. It is not a production billing system and contains no live patient or payer data.
+RCM360 is a reproducible analytics portfolio project using the single, fully synthetic [Misata Hospital Encounters, Diagnoses and Claims dataset](https://www.misata.studio/datasets/hospital-encounters-claims). It examines claim status, denial patterns, financial source fields, payer/provider cohorts, and relational data quality through Python, PostgreSQL, SQL, and an interactive Streamlit dashboard.
 
-> **Verification status:** the PostgreSQL schema, snapshot loader, 28-query analysis pack, exporter, and five-page dashboard are implemented. PostgreSQL has not yet been installed or run in this environment, so the SQL pack has not been executed against a server and PostgreSQL-reconciled JSON exports are not available. The dashboard reports that exports are missing instead of showing sample business metrics.
+This is an analytical demonstration, not a billing system. It contains no real patient or payer records. Source patterns describe a synthetic generator and must not be interpreted as real-world performance.
 
-## At a glance
+> **Verification status:** the PostgreSQL schema, source loader, 28-query analysis pack, 32-rule QA audit, JSON exporter, and five-page dashboard are implemented. Python source profiling and automated tests pass. PostgreSQL is not installed or available in this environment, so the SQL pack and exporter have not been executed against a database. No PostgreSQL-reconciled dashboard JSON or populated-dashboard screenshot is published. The app fails closed instead of showing sample business metrics.
 
-- Source: [Misata Hospital Encounters, Diagnoses and Claims](https://www.misata.studio/datasets/hospital-encounters-claims), a CC0 synthetic dataset.
-- Verified locally: 39,946 rows across seven CSV tables; 4,737 claims; seven unique primary keys; 82,311 valid foreign-key references. See the [dataset profile](docs/dataset_profile.md).
-- Database schema: seven PostgreSQL tables, primary and foreign keys, source-supported checks, indexes, an ER diagram, and a claim-grain analytics view.
-- SQL: 28 documented analyses, each with a question, output grain, denominator, and interpretation limit. See the [query catalog](sql/queries/README.md).
-- EDA: a reproducible notebook profiles the verified local archive and uses aggregate-only displays. See [notebooks/eda.ipynb](notebooks/eda.ipynb).
-- Dashboard: five pages for executive overview, claims and denials, revenue and payments, payer and provider comparison, and data quality.
-- Design: an indigo interface built with native Streamlit theming, Streamlit Shadcn UI, and Plotly; the source design reference stays local.
-- Privacy: the local source includes synthetic identifiers and contact fields. The public dashboard contract omits patient identifiers and attributes.
+## Project objectives
+
+- Verify the source archive, table grains, keys, relationships, missingness, and financial semantics.
+- Build a typed and repeatable load into a locally run PostgreSQL schema.
+- Analyze claims and their one-to-many clinical context without duplicating claim counts or amounts.
+- Implement read-only SQL analyses and separate original-data QA from deliberately injected test defects.
+- Reconcile PostgreSQL results to the pinned source, then export versioned, privacy-minimized JSON.
+- Present verified results through a five-page interactive dashboard with filters, drilldown, and CSV export.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-    CSV[Verified Misata CSV archive] --> ETL[Typed Python loader]
-    ETL --> PG[(Local PostgreSQL: rcm360)]
-    PG --> SQL[SQL analyses and QA]
-    SQL --> JSON[Validated, privacy-minimized JSON exports]
-    JSON --> UI[Streamlit + Shadcn UI + Plotly]
+    CSV[SHA-256-verified Misata archive] --> ETL[Typed Python loader]
+    ETL --> PG[(Local PostgreSQL)]
+    PG --> SQL[28 analyses and QA]
+    SQL --> CHECK[Source and financial reconciliation]
+    CHECK --> JSON[Versioned dashboard JSON]
+    JSON --> UI[Streamlit, Shadcn UI, Plotly]
 ```
 
-PostgreSQL is the required execution and reconciliation layer. The dashboard reads the exported JSON files and does not connect to PostgreSQL. Since the data is historical, a hosted database and separate backend are unnecessary. The exporter and QA pipeline are implemented; PostgreSQL execution is required before verified JSON files can be generated.
+The dashboard reads validated JSON files and never connects to PostgreSQL. PostgreSQL remains the required execution and reconciliation layer for final findings and exports. The source archive and extracted CSVs are kept locally and excluded from Git.
 
-## Analytical guardrails
+## Source-profile checkpoint
 
-- Report claim counts and amounts at one row per claim. Pre-aggregate one-to-many diagnoses, labs, and prescriptions before joining to claim totals.
-- `paid_amount` is the source's recorded payer-payment field, not total collections. Patient responsibility is an assigned amount without patient-payment transactions.
-- Denial rates are observed status shares with no source observation cutoff or maturity window. Denied billed amounts are gross billed exposure, not confirmed losses or recoverable revenue.
-- The data has no remittance or adjustment ledger, appeal/resubmission history, service-line detail, patient-payment transactions, currency field, or collection cutoff. Do not claim aging, outstanding balances, total collections, or collection rates.
-- Source patterns describe a synthetic generator, not actual Commure, payer, provider, patient, or clinical behavior. See the [data contract](docs/data_contract.md) and [business questions](docs/business_questions.md).
+These figures were independently profiled from the pinned CSV source using Python and exact `Decimal` arithmetic. PostgreSQL reproduction remains pending; these are not final database-verified dashboard findings.
 
-## Local setup
+| Measure | Source-profile value |
+| --- | ---: |
+| Rows across seven tables | 39,946 |
+| Claims | 4,737 |
+| Paid / denied / pending claims | 4,122 / 426 / 189 |
+| Observed denied share | 8.99% (426 / 4,737) |
+| Billed amount | 18,033,949.84 |
+| Allowed amount | 9,172,905.62 |
+| Recorded payer payments | 7,938,924.10 |
+| Patient responsibility assigned | 7,779,126.53 |
+| Billed amount on denied claims | 1,495,593.80 |
 
-Use Python 3.11 and a local PostgreSQL server. PostgreSQL is not bundled with the project.
+The largest recorded denial-reason labels are `not_medically_necessary` (123), `missing_authorization` (96), and `out_of_network` (88). These source labels do not prove root cause. Denied billed amount is descriptive exposure, not confirmed loss or recoverable revenue.
 
-1. Download the archive and verify the pinned SHA-256 using [data/raw/README.md](data/raw/README.md). Keep the ZIP and seven CSV files in `data/raw/`; they are intentionally ignored by Git.
-2. Create a virtual environment and install development dependencies:
+Interpretation limits:
 
-   ```powershell
-   py -3.11 -m venv .venv
-   .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-   ```
+- The snapshot has no observation cutoff or maturity window, so monthly denial shares are observed status proportions, not mature cohort outcomes.
+- `paid_amount` is the publisher's payer-payment field. It includes 606,755.02 recorded under `self_pay` in this synthetic source.
+- Patient responsibility is an assigned amount; the dataset has no patient-payment transactions, remittance ledger, or adjustment history.
+- There is no currency field. Do not infer total collections, collection rates, aging, overdue balances, or denial recovery.
+- Diagnoses, labs, and prescriptions are one-to-many encounter tables. Aggregate them before joining to claim-level financial measures.
 
-3. Set `DATABASE_URL` in the local PowerShell session to a PostgreSQL URI. Use a local role and password; do not commit `.env` or share credentials in chat.
+See the [dataset profile](docs/dataset_profile.md), [data contract](docs/data_contract.md), and [business questions](docs/business_questions.md) for provenance, definitions, and limits.
 
-   ```powershell
-   $env:DATABASE_URL = "postgresql://<local-user>:<local-password>@localhost:5432/rcm360"
-   ```
+## Dashboard
 
-4. From the repository root, load the approved source snapshot. The loader creates the `rcm360` schema and source tables in the selected database, loads empty tables, and accepts already-populated tables only when they exactly match the approved snapshot.
+Five pages cover executive overview, claims and denials, revenue and payments, payer and provider comparisons, and data quality/QA. Global filters support submission dates, payer, provider, status, and encounter type. The claims table supports search, sorting, claim detail, drilldown, and CSV export. Financial fields remain separate, and small payer/provider cohorts are flagged.
 
-   ```powershell
-   .\.venv\Scripts\python.exe -m src.etl.load_postgres
-   ```
+The UI uses an indigo palette aligned with the local design reference. The reference assets remain local and are not part of the public repository.
 
-5. After loading, run the read-only SQL analysis pack with `psql` as described in the [query catalog](sql/queries/README.md). Review every reconciliation result before interpreting findings.
-6. Generate the validated JSON exports, then start the dashboard:
+**Screenshots:** populated dashboard screenshots are pending verified PostgreSQL exports. This checkout has no reconciled JSON, and the live app currently shows its explicit missing-export state. No fixture or unverified KPI screenshot is presented as a project result.
 
-   ```powershell
-   .\.venv\Scripts\python.exe -m src.exports.dashboard_json
-   .\.venv\Scripts\python.exe -m streamlit run dashboard/app.py
-   ```
+## Technology stack
 
-The dashboard entry point is `dashboard/app.py`. The checked-in app intentionally requires PostgreSQL-reconciled `dashboard/data/claims.json` and `dashboard/data/quality.json` before it displays analytical results.
+| Area | Tools |
+| --- | --- |
+| Data and ETL | Python 3.11, Pandas, NumPy |
+| Relational analysis | PostgreSQL, SQL, SQLAlchemy, Psycopg |
+| QA and reconciliation | PostgreSQL temporary-table audits, deterministic injected cases, exact Python `Decimal` checks |
+| Dashboard | Streamlit, Streamlit Shadcn UI, Plotly, JSON |
+| Exploratory analysis | Jupyter, Matplotlib, Seaborn |
+| Tests and SQL parsing | Pytest, Pglast |
 
-## Exploratory analysis
+## Repository map
 
-After placing the approved archive and its extracted CSVs in `data/raw/`, start the notebook from the project root:
+```text
+dashboard/       Five-page Streamlit app and JSON contract
+docs/            Data profile, business questions, and data contract
+notebooks/       Aggregate-only source EDA notebook
+sql/             PostgreSQL schema, view, 28 queries, and QA rules
+src/             Verified loader, source audit, and JSON exporter
+tests/            Data, QA, exporter, and dashboard tests
+```
+
+Raw CSVs, local audit reports, credentials, the HTML design reference, and internal planning files remain outside the public Git tree.
+
+## Run locally
+
+Use Python 3.11 and a local PostgreSQL server. The source ZIP and its seven CSV members must be in `data/raw/`; verify the pinned hash and placement using [data/raw/README.md](data/raw/README.md). The raw inputs are ignored by Git.
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+```
+
+Set `DATABASE_URL` only in the local PowerShell session. Use a local database role; do not commit `.env` or paste credentials into chat.
+
+```powershell
+$env:DATABASE_URL = "postgresql://<local-user>:<local-password>@localhost:5432/rcm360"
+```
+
+Load and verify the approved snapshot:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.etl.load_postgres
+```
+
+Run all 28 read-only analyses using the exact commands in the [SQL query catalog](sql/queries/README.md). Review the reconciliation queries before interpreting results. Run the [QA audit](sql/quality_checks/README.md); its full local report is written to ignored `data/processed/quality_audit.json`, while standard output contains the public-safe projection.
+
+Generate dashboard files only after PostgreSQL successfully reconciles every source table and claim-view amount:
+
+```powershell
+.\.venv\Scripts\python.exe -m src.exports.dashboard_json
+.\.venv\Scripts\python.exe -m streamlit run dashboard/app.py
+```
+
+The exporter writes `dashboard/data/claims.json` and `dashboard/data/quality.json`. It checks the archive hash, verifies every PostgreSQL source table against the pinned snapshot, reconciles exact claim counts and amounts, validates the dashboard contract, and keeps injected QA issue details out of public output.
+
+For source EDA, open the [notebook](notebooks/eda.ipynb) after placing the archive and extracted files in `data/raw/`:
 
 ```powershell
 .\.venv\Scripts\jupyter.exe lab notebooks/eda.ipynb
 ```
 
-The notebook rechecks the archive and extracted-member bytes before reading them. It displays aggregate summaries and plots without source record identifiers; saved notebook outputs are cleared.
+The notebook rechecks the archive and extracted-member bytes. It displays aggregate summaries and plots, not row-level records or identifier values; committed notebook outputs are cleared.
 
 ## Tests
 
-Run the data tests and dashboard tests from the project root:
+Run the complete local test suite from the repository root:
 
 ```powershell
-.\.venv\Scripts\python.exe -B -m unittest discover -s tests/data -v
-.\.venv\Scripts\python.exe -m pytest tests/dashboard -q
+.\.venv\Scripts\python.exe -m pytest tests/data tests/dashboard -q
+.\.venv\Scripts\python.exe -m pip check
 ```
 
-Dashboard tests use isolated contract fixtures and do not represent project findings. Live database, export-reconciliation, and full dashboard visual checks must be run after PostgreSQL is available.
+The data/export and dashboard tests use isolated contracts and fixtures. SQL grammar parsing does not execute queries. Passing local tests therefore does not establish PostgreSQL results, production exports, or populated-page visual behavior.
 
-## Project documents
+## Deployment status
 
-- [Dataset profile](docs/dataset_profile.md) and [data contract](docs/data_contract.md)
+The repository has the root `requirements.txt`, root `.streamlit/config.toml`, and dashboard entrypoint `dashboard/app.py` needed to prepare a Streamlit Community Cloud deployment. Deployment is not complete: this checkout has no PostgreSQL-verified JSON exports, and the app would display only its missing-data state. Publishing that state would not demonstrate the requested analytics. No private data or database credential is placed in the app files.
+
+Community Cloud is a free hosting option, but publishing requires the owner's GitHub authorization and a successfully built app. Its current deployment guide defaults to Python 3.12 and allows choosing the runtime in Advanced settings; select and verify the project's tested Python version before deployment. See the [official deploy guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) and [dependency guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/app-dependencies). RCM360 has not been deployed.
+
+## Project references
+
+- [Dataset provenance and profile](docs/dataset_profile.md)
+- [Data and dashboard contract](docs/data_contract.md)
 - [Business questions](docs/business_questions.md)
-- [SQL analysis catalog](sql/queries/README.md) and [quality rules](sql/quality_checks/README.md)
-- [Source download and provenance instructions](data/raw/README.md)
-
-Deployment to Streamlit Community Cloud is intentionally not part of the current work. The project should not be described as PostgreSQL-verified or deployment-ready until the corresponding checks have actually passed.
+- [SQL query catalog](sql/queries/README.md)
+- [QA rules and audit method](sql/quality_checks/README.md)
+- [Entity relationship diagram](sql/schema/erd.md)
