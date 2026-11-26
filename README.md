@@ -12,6 +12,7 @@ RCM360 is an analytical portfolio project built from one historical, fully synth
 - Verified locally: 39,946 rows across seven CSV tables; 4,737 claims; seven unique primary keys; 82,311 valid foreign-key references. See the [dataset profile](docs/dataset_profile.md).
 - Database schema: seven PostgreSQL tables, primary and foreign keys, source-supported checks, indexes, an ER diagram, and a claim-grain analytics view.
 - SQL: 28 documented analyses, each with a question, output grain, denominator, and interpretation limit. See the [query catalog](sql/queries/README.md).
+- EDA: a reproducible notebook profiles the verified local archive and uses aggregate-only displays. See [notebooks/eda.ipynb](notebooks/eda.ipynb).
 - Dashboard: five pages for executive overview, claims and denials, revenue and payments, payer and provider comparison, and data quality.
 - Design: an indigo interface built with native Streamlit theming, Streamlit Shadcn UI, and Plotly; the source design reference stays local.
 - Privacy: the local source includes synthetic identifiers and contact fields. The public dashboard contract omits patient identifiers and attributes.
@@ -70,6 +71,16 @@ Use Python 3.11 and a local PostgreSQL server. PostgreSQL is not bundled with th
    ```
 
 The dashboard entry point is `dashboard/app.py`. The checked-in app intentionally requires PostgreSQL-reconciled `dashboard/data/claims.json` and `dashboard/data/quality.json` before it displays analytical results.
+
+## Exploratory analysis
+
+After placing the approved archive and its extracted CSVs in `data/raw/`, start the notebook from the project root:
+
+```powershell
+.\.venv\Scripts\jupyter.exe lab notebooks/eda.ipynb
+```
+
+The notebook rechecks the archive and extracted-member bytes before reading them. It displays aggregate summaries and plots without source record identifiers; saved notebook outputs are cleared.
 
 ## Tests
 
