@@ -1,8 +1,6 @@
 # RCM360 business questions
 
-These questions translate revenue-cycle operations work into analyses supported by the verified Misata synthetic dataset. They are questions to answer after loading and validating the source in PostgreSQL; they are not findings. Use a claim-level denominator for claim and financial measures, and pre-aggregate one-to-many clinical tables before joining them to claims.
-
-The target Data Operations Analyst role emphasizes QA, process adherence, SQL discrepancy analysis, documentation, clear communication, and cross-team problem solving. This project can demonstrate artifacts and methods for those skills; a synthetic portfolio project does not establish on-the-job performance. The role description is at <https://jobs.ashbyhq.com/Commure/4f984c29-f4f8-465b-a20e-b9c9e81a8e1c/>.
+These questions translate revenue-cycle operations into analyses supported by the verified Misata synthetic dataset. They are questions to answer after loading and validating the source in PostgreSQL; they are not findings. Use a claim-level denominator for claim and financial measures, and pre-aggregate one-to-many clinical tables before joining them to claims. The set emphasizes quality checks, process adherence, discrepancy analysis, and clear operational communication.
 
 ## Claim flow and denials
 
