@@ -8,6 +8,8 @@ python -m src.validation.audit
 
 The command reports original data and injected tests in separately labeled JSON objects. It exits nonzero on an original issue, an incomplete injection test, or an execution error. The command uses a read-write transaction with permission to create temporary tables. It reads the seven source tables and rolls back all temporary tables before returning.
 
+Standard output contains the public-safe projection. Each completed audit also writes the full local report, including source references and injected-case details, to `data/processed/quality_audit.json`. The directory is ignored by Git; keep this local report out of public dashboard exports.
+
 ## Tested grain and rules
 
 Each rule tests source rows from one table. A row can contribute at most one issue to a rule. The original summary counts issues across rules, so a row can contribute to several rules. The original pass rate uses the eligible row count for that rule. A zero-row denominator yields a null pass rate. Summary source_rows is the row count across the seven original source tables.

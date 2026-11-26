@@ -1,5 +1,8 @@
+import json
 import unittest
 from importlib.util import find_spec
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest.mock import MagicMock, patch
 
 from src.etl.source import TABLE_COLUMNS
@@ -10,6 +13,7 @@ from src.validation.audit import (
     evaluation_statement,
     public_results,
     run_quality,
+    write_local_report,
 )
 from src.validation.rules import FOREIGN_KEYS, build_rules
 
@@ -144,6 +148,43 @@ class QualityAuditTest(unittest.TestCase):
         self.assertEqual(public["original"]["summary"]["issues_total"], 3)
         self.assertEqual(public["injected_test"]["issues"], [])
         self.assertEqual(len(local["injected_test"]["issues"]), 1)
+
+    def test_local_report_keeps_full_issue_details_outside_the_public_projection(self):
+        audit = {
+            "original": {
+                "summary": {"source_rows": 4, "issues_total": 1},
+                "rules": [],
+                "issues": [{"source_table": "patients", "record_ref": "local-patient-ref"}],
+            },
+            "injected_test": {
+                "summary": {"source_rows": 4},
+                "rules": [],
+                "issues": [{"record_ref": "local-injected-ref"}],
+            },
+        }
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "nested" / "quality_audit.json"
+            write_local_report(path, audit)
+            report = json.loads(path.read_text(encoding="utf-8"))
+
+        self.assertEqual(report["original"]["issues"], audit["original"]["issues"])
+        self.assertEqual(report["injected_test"]["issues"], audit["injected_test"]["issues"])
+        self.assertEqual(report["metadata"]["record_count"], 4)
+        self.assertIn("source_sha256", report["metadata"])
+
+    def test_local_report_replacement_failure_preserves_previous_report(self):
+        audit = {
+            "original": {"summary": {"source_rows": 1}},
+            "injected_test": {"summary": {}},
+        }
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "quality_audit.json"
+            path.write_text("previous report", encoding="utf-8")
+            with patch("src.validation.audit.os.replace", side_effect=PermissionError("blocked")):
+                with self.assertRaisesRegex(PermissionError, "blocked"):
+                    write_local_report(path, audit)
+            self.assertEqual(path.read_text(encoding="utf-8"), "previous report")
+            self.assertEqual([item.name for item in path.parent.iterdir()], [path.name])
 
 
 @unittest.skipUnless(find_spec("pglast"), "pglast is required for PostgreSQL grammar checks")

@@ -4,12 +4,15 @@ import json
 import os
 import sys
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from decimal import Decimal
+from pathlib import Path
+from tempfile import mkstemp
 
 import psycopg
 from psycopg import sql
 
-from src.etl.source import TABLE_COLUMNS
+from src.etl.source import SOURCE_SHA256, TABLE_COLUMNS
 from src.validation.rules import PRIMARY_KEYS, Rule, audit_table, build_rules
 
 
@@ -17,6 +20,35 @@ from src.validation.rules import PRIMARY_KEYS, Rule, audit_table, build_rules
 class Evaluation:
     tested_rows: int
     failures: dict[int, str | None]
+
+
+ROOT = Path(__file__).resolve().parents[2]
+LOCAL_REPORT = ROOT / "data" / "processed" / "quality_audit.json"
+
+
+def write_local_report(path: Path, audit: dict) -> None:
+    """Atomically save full issue references outside the public dashboard tree."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "metadata": {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "source_sha256": SOURCE_SHA256,
+            "record_count": audit["original"]["summary"]["source_rows"],
+            "report_scope": "local full original and injected-test audit",
+        },
+        **audit,
+    }
+    descriptor, temporary_name = mkstemp(prefix=".quality-audit-", suffix=".tmp", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+            json.dump(payload, stream, indent=2, ensure_ascii=False, allow_nan=False)
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary_name, path)
+    finally:
+        if os.path.exists(temporary_name):
+            os.unlink(temporary_name)
 
 
 def copy_statements() -> list[sql.Composable]:
@@ -234,8 +266,11 @@ def main() -> int:
         return 2
     try:
         with psycopg.connect(database_url) as connection, connection.cursor() as cursor:
-            results = public_results(run_quality(cursor))
-    except ValueError as exc:
+            audit = run_quality(cursor)
+        write_local_report(LOCAL_REPORT, audit)
+        print(f"Full local audit written to {LOCAL_REPORT}", file=sys.stderr)
+        results = public_results(audit)
+    except (OSError, ValueError) as exc:
         print(f"Quality audit failed. {exc}", file=sys.stderr)
         return 1
     except psycopg.Error as exc:
