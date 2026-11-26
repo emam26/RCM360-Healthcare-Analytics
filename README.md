@@ -118,7 +118,7 @@ Generate dashboard files only after PostgreSQL successfully reconciles every sou
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.exports.dashboard_json
-.\.venv\Scripts\python.exe -m streamlit run dashboard/app.py
+.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
 ```
 
 The exporter writes `dashboard/data/claims.json` and `dashboard/data/quality.json`. It checks the archive hash, verifies every PostgreSQL source table against the pinned snapshot, reconciles exact claim counts and amounts, validates the dashboard contract, and keeps injected QA issue details out of public output.
@@ -144,7 +144,7 @@ The data/export and dashboard tests use isolated contracts and fixtures. SQL gra
 
 ## Deployment status
 
-The repository has the root `requirements.txt`, root `.streamlit/config.toml`, and dashboard entrypoint `dashboard/app.py` needed to prepare a Streamlit Community Cloud deployment. Deployment is not complete: this checkout has no PostgreSQL-verified JSON exports, and the app would display only its missing-data state. Publishing that state would not demonstrate the requested analytics. No private data or database credential is placed in the app files.
+The repository has the root `requirements.txt`, root `.streamlit/config.toml`, and root entrypoint `streamlit_app.py` needed to prepare a Streamlit Community Cloud deployment. The dashboard implementation remains in `dashboard/app.py`. Deployment is not complete: this checkout has no PostgreSQL-verified JSON exports, and the app would display only its missing-data state. Publishing that state would not demonstrate the requested analytics. No private data or database credential is placed in the app files.
 
 Community Cloud is a free hosting option, but publishing requires the owner's GitHub authorization and a successfully built app. Its current deployment guide defaults to Python 3.12 and allows choosing the runtime in Advanced settings; select and verify the project's tested Python version before deployment. See the [official deploy guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) and [dependency guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/app-dependencies). RCM360 has not been deployed.
 
