@@ -13,8 +13,19 @@ htmlcov/
 # Local configuration and credentials
 .env
 .env.*
-!.env.example
 .streamlit/secrets.toml
+
+# Local-only development instructions, model configuration, and design reference
+/.env.example
+/AGENTS.md
+/PLAN.md
+/PROGRESS.md
+/.agents/
+/.codex/
+/reference UI/
+docs/decisions.md
+docs/ui_reference_analysis.md
+docs/commure_role_alignment.md
 
 # Locally retained source data and generated staging/test data may contain
 # synthetic patient identifiers; keep them out of public commits.

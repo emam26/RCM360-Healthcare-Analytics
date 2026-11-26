@@ -13,7 +13,7 @@ RCM360 is an analytical portfolio project built from one historical, fully synth
 - Database schema: seven PostgreSQL tables, primary and foreign keys, source-supported checks, indexes, an ER diagram, and a claim-grain analytics view.
 - SQL: 27 documented analyses, each with a question, output grain, denominator, and interpretation limit. See the [query catalog](sql/queries/README.md).
 - Dashboard: five pages for executive overview, claims and denials, revenue and payments, payer and provider comparison, and data quality.
-- Design: adapts the preserved [HTML reference](reference%20UI/rcm_dashboard_indigo.html) to native Streamlit theming, Streamlit Shadcn UI, and Plotly.
+- Design: an indigo interface built with native Streamlit theming, Streamlit Shadcn UI, and Plotly; the source design reference stays local.
 - Privacy: the local source includes synthetic identifiers and contact fields. The public dashboard contract omits patient identifiers and attributes.
 
 ## Architecture
@@ -83,10 +83,9 @@ Dashboard tests use isolated contract fixtures and do not represent project find
 
 ## Project documents
 
-- [Project roadmap](PLAN.md) and [current progress](PROGRESS.md)
 - [Dataset profile](docs/dataset_profile.md) and [data contract](docs/data_contract.md)
-- [Business questions](docs/business_questions.md) and [Commure role evidence map](docs/commure_role_alignment.md)
-- [SQL analysis catalog](sql/queries/README.md) and [reference UI analysis](docs/ui_reference_analysis.md)
-- [Teamwork skill](.agents/skills/agent-teamwork/SKILL.md) and [persistent agent instructions](AGENTS.md)
+- [Business questions](docs/business_questions.md)
+- [SQL analysis catalog](sql/queries/README.md) and [quality rules](sql/quality_checks/README.md)
+- [Source download and provenance instructions](data/raw/README.md)
 
 Deployment to Streamlit Community Cloud is intentionally not part of the current work. The project should not be described as PostgreSQL-verified or deployment-ready until the corresponding checks have actually passed.
