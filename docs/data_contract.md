@@ -60,8 +60,10 @@ The dashboard may use these as expected reconciliation values only after execute
 
 - PostgreSQL is the authoritative execution environment for final analytical results. Store money in exact numeric types and document rounding at presentation/export boundaries.
 - The export pipeline reads validated PostgreSQL views and writes JSON consumed by the deployed Streamlit app; production dashboard code must not require PostgreSQL.
-- Every export includes schema version, generated timestamp, dataset provenance, source hash, record grain, and validation/reconciliation status.
-- Represent dates in ISO 8601. Preserve nulls explicitly. Serialize monetary values without binary-float drift; dashboard formatting must not change underlying totals.
+- Write `dashboard/data/claims.json` and `dashboard/data/quality.json`. Each file includes schema version (`1.0`), generated timestamp, dataset provenance, source archive hash, record grain, and validation/reconciliation status.
+- `claims.json` has one `records` array at one-row-per-claim grain. Each record contains `claim_id`, `submitted_at`, `payer`, `encounter_type`, `provider_id`, `status`, `billed_amount`, `allowed_amount`, `payer_paid_amount`, `patient_responsibility`, `allowed_ratio`, `paid_at`, `denied_at`, `denial_reason`, and descriptive `days_to_payment` for paid claims only. Keep exact financial values as decimal strings in JSON; omit `patient_id`, patient attributes, provider names/NPI, and all other unnecessary direct identifiers.
+- `quality.json` contains separately labeled `original` and `injected_test` rule summaries, counts, pass rates, severities, actions, and exception summaries. It must not include patient IDs or test records. A claim-level original exception may carry a claim ID; audit issues keyed by other source rows stay in the local audit report unless they can be safely de-identified.
+- Represent timestamps in ISO 8601 and preserve nulls explicitly. Dashboard calculations must retain exact amount semantics and only convert values for chart rendering after aggregation.
 
 ## QA result separation
 

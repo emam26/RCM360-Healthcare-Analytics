@@ -22,5 +22,5 @@ Do not equate payer payments with total collections. Treat denied billed amount 
 
 ## Pending decisions
 
-- PostgreSQL database/schema execution and connection details after the user installs/starts a local PostgreSQL service.
-- Final dashboard export shape after the PostgreSQL schema, analysis views, and QA outputs are executed and reconciled.
+- PostgreSQL schema execution and local connection details after the user installs/starts a PostgreSQL service.
+- Final KPI and QA results only after PostgreSQL queries are executed and reconciled against Python source-file totals.
