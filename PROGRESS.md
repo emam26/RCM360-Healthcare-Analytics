@@ -14,12 +14,12 @@ Phase 1 — source/schema verification completed; Phase 2 ETL and EDA preparatio
 - Verified the reference HTML’s five pages, styling, responsive breakpoints, interactions, and fictional labels in `docs/ui_reference_analysis.md`; source SHA-256 remained unchanged.
 - Detected Codex CLI 0.171.0. Official Codex documentation describes project agents as `.codex/agents/*.toml` and the concurrency setting as `[agents].max_concurrent_threads_per_session`.
 - Created the repository teamwork skill, project instructions, roadmap, data contract, decision log, agent files, project-scoped Codex config, dependency pins, and Streamlit theme. The skill validator and TOML syntax checks pass.
-- Initialized Git, set `origin` to `https://github.com/emam26/RCM360-Healthcare-Analytics.git`, and confirmed GitHub shows the repository empty. Git Credential Manager is configured; GitHub CLI is unavailable. No commits have been created yet.
+- Initialized Git on `main`, set `origin` to the user's repository, and pushed `2b81a5e chore: initialize RCM360 project workflow`; `main` tracks `origin/main`. Git Credential Manager authenticated successfully; GitHub CLI is unavailable.
 - Installed the pinned Python 3.11 development dependencies in `.venv`. `pip check` passes. Browser smoke test verified Shadcn select, button, and card rendering and interactions with Streamlit 1.60.0 / Starlette 1.3.1 / Shadcn UI 1.5.0.
 
 ## In progress / next
 
-- Commit the verified project bootstrap and source/reference documentation as separate logical commits, then push to origin if authentication succeeds.
+- Commit the verified dataset and reference documentation separately from implementation; continue pushing verified logical commits to `origin/main`.
 - Build reproducible ETL, PostgreSQL schema/load, advanced SQL, QA, and JSON exports against the verified contract.
 - Implement the five-page dashboard after the exported JSON schema is settled.
 - Obtain PostgreSQL installation/service setup through the user's local system, then execute and reconcile all SQL before declaring analytics complete.
