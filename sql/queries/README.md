@@ -1,6 +1,6 @@
 # PostgreSQL analysis pack
 
-Run these 27 read-only queries after the approved snapshot and claim analytics view are loaded into the rcm360 schema. Each query states its cohort, denominator, and interpretation limit. The results describe the Misata synthetic dataset and depend on the snapshot's available fields. See the [business questions](../../docs/business_questions.md) and [data contract](../../docs/data_contract.md).
+Run these 28 read-only queries after the approved snapshot and claim analytics view are loaded into the rcm360 schema. Each query states its cohort, denominator, and interpretation limit. The results describe the Misata synthetic dataset and depend on the snapshot's available fields. See the [business questions](../../docs/business_questions.md) and [data contract](../../docs/data_contract.md).
 
 From the project root, with the loader already run and DATABASE_URL set, execute the pack in PowerShell.
 
@@ -46,6 +46,7 @@ The catalog maps each query to its output grain. Counts always refer to the coho
 | [Q25](05_reconciliation.sql) | Agreement of claim and encounter fields | Snapshot |
 | Q26 | Exact counts and financial amounts across base claims and view | Reconciliation metric |
 | Q27 | Child counts and encounter claim coverage | Parent-count check |
+| [Q28](06_monthly_monitoring.sql) | Month-over-month volume and observed denial rate, plus trailing three-month volume average | Calendar month, including gaps |
 
 Review Q26 before relying on the claim view for totals. The expected values come from the independent [source profile](../../docs/dataset_profile.md). Each matches_snapshot value should be true after an approved load. Q25 and Q27 report complementary mismatch counts. These checks cover the typed snapshot. The project's original-data audit and injected tests are separate.
 

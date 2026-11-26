@@ -11,7 +11,7 @@ RCM360 is an analytical portfolio project built from one historical, fully synth
 - Source: [Misata Hospital Encounters, Diagnoses and Claims](https://www.misata.studio/datasets/hospital-encounters-claims), a CC0 synthetic dataset.
 - Verified locally: 39,946 rows across seven CSV tables; 4,737 claims; seven unique primary keys; 82,311 valid foreign-key references. See the [dataset profile](docs/dataset_profile.md).
 - Database schema: seven PostgreSQL tables, primary and foreign keys, source-supported checks, indexes, an ER diagram, and a claim-grain analytics view.
-- SQL: 27 documented analyses, each with a question, output grain, denominator, and interpretation limit. See the [query catalog](sql/queries/README.md).
+- SQL: 28 documented analyses, each with a question, output grain, denominator, and interpretation limit. See the [query catalog](sql/queries/README.md).
 - Dashboard: five pages for executive overview, claims and denials, revenue and payments, payer and provider comparison, and data quality.
 - Design: an indigo interface built with native Streamlit theming, Streamlit Shadcn UI, and Plotly; the source design reference stays local.
 - Privacy: the local source includes synthetic identifiers and contact fields. The public dashboard contract omits patient identifiers and attributes.
