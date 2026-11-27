@@ -4,7 +4,6 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![Healthcare data](https://img.shields.io/badge/Healthcare%20data-Misata%20synthetic-0F766E)](https://www.misata.studio/datasets/hospital-encounters-claims)
 
 ### [**Open the current RCM360 dashboard**](https://rcm360-healthcare-analytics.streamlit.app/)
@@ -14,8 +13,6 @@
 ## Overview
 
 RCM360 examines claim status, denial patterns, source-reported financial fields, payer/provider cohorts, and relational data quality. It uses Python for loading and exports, PostgreSQL for relational analysis and reconciliation, and Streamlit for an interactive dashboard.
-
-This is an analytical demonstration, not a billing system. Findings describe a synthetic dataset and should not be interpreted as real-world payer or provider performance.
 
 ## Explore the dashboard
 
