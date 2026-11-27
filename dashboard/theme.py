@@ -84,6 +84,18 @@ section[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] lab
 .st-key-rcm-heading h1 { font-size: 30px; letter-spacing: -1px; line-height: 1.2; margin: 0; }
 .st-key-rcm-heading p { color: var(--rcm-muted); font-size: 12px; line-height: 1.5; margin-top: 6px; }
 .rcm-eyebrow { color: var(--rcm-indigo); font-size: 10px; font-weight: 800; letter-spacing: 1.4px; text-transform: uppercase; margin-bottom: 5px; }
+.rcm-health-banner {
+  position: relative; display: flex; min-height: 58px; align-items: center; gap: 12px;
+  margin-top: 13px; padding: 8px 15px; overflow: hidden; border: 1px solid #E1DDF6;
+  border-radius: 11px; background: linear-gradient(105deg, #F0EDFF 0%, #FBFAFF 56%, #F1F2FF 100%);
+  color: #5145B8;
+}
+.rcm-health-banner-mark { display: grid; z-index: 1; flex: 0 0 34px; width: 34px; height: 34px; place-items: center; border-radius: 9px; background: #fff; box-shadow: 0 1px 4px #30256D12; }
+.rcm-health-banner-mark svg { width: 22px; height: 22px; }
+.rcm-health-banner-copy { z-index: 1; display: flex; flex-direction: column; gap: 2px; }
+.rcm-health-banner-copy strong { color: #332A78; font-size: 11px; font-weight: 800; letter-spacing: .2px; }
+.rcm-health-banner-copy small { color: #68618D; font-size: 10px; line-height: 1.3; }
+.rcm-health-banner-art { position: absolute; top: 1px; right: 12px; width: 260px; height: 54px; color: #756BCB; opacity: .45; }
 .stApp h3 { color: var(--rcm-ink); font-size: 14px; font-weight: 700; letter-spacing: -.2px; }
 .stApp [data-testid="stCaptionContainer"] p { color: var(--rcm-muted); font-size: 11px; line-height: 1.5; }
 .st-key-rcm-heading [data-testid="stCaptionContainer"] p { font-size: 12px; }
@@ -234,6 +246,8 @@ h2, h3 { color: var(--rcm-ink); font-size: 14px; letter-spacing: -.2px; }
   [data-testid="stMainBlockContainer"] { padding-left: 12px; padding-right: 12px; padding-bottom: 24px; }
   .st-key-rcm-topbar { width: calc(100% + 24px); margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; }
   .st-key-rcm-heading h1 { font-size: 24px; }
+  .rcm-health-banner { min-height: 54px; padding-left: 11px; }
+  .rcm-health-banner-art { right: 2px; width: 115px; opacity: .2; }
   .st-key-rcm-heading-action { margin-top: 10px; }
   .st-key-rcm-heading-action .stElementContainer { width: 100%; align-self: stretch; }
   .st-key-rcm-heading-action [data-testid="stDownloadButton"] button,

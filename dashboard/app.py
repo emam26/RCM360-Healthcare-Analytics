@@ -633,6 +633,20 @@ def render_heading(page: int, export_rows: list[Claim], verified: bool) -> None:
                 )
             else:
                 st.button("Export claims CSV", disabled=True, width="content", icon=":material/download:")
+        if page == 0:
+            st.markdown(
+                "<div class='rcm-health-banner'>"
+                "<span class='rcm-health-banner-mark' aria-hidden='true'>"
+                "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'>"
+                "<path d='M12 3v7m0 4v7M3 12h7m4 0h7'/><path d='M2 12h5l2-4 4 8 3-5h6'/></svg></span>"
+                "<span class='rcm-health-banner-copy'><strong>Healthcare revenue cycle</strong>"
+                "<small>Claims · payments · denial patterns</small></span>"
+                "<svg class='rcm-health-banner-art' viewBox='0 0 300 56' fill='none' aria-hidden='true'>"
+                "<path d='M2 30h68l10-2 9-17 13 31 14-23 10 11h63l9-2 9-15 13 28 12-22 10 11h58' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/>"
+                "<path d='M276 9v18m-9-9h18' stroke='currentColor' stroke-width='2' stroke-linecap='round'/></svg>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
 
 
 def render_empty_filters() -> None:
