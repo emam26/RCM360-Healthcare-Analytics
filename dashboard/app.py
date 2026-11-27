@@ -621,10 +621,11 @@ def render_topbar(page_title: str) -> None:
 
 def render_heading(page: int, export_rows: list[Claim], verified: bool) -> None:
     with st.container(key="rcm-heading"):
-        st.markdown("<div class='rcm-eyebrow'>Revenue cycle management</div>", unsafe_allow_html=True)
-        st.title(PAGES[page])
-        st.caption(DESCRIPTIONS[page])
-        with st.container(key="rcm-heading-action"):
+        title, action = st.columns([4.2, 1.6], vertical_alignment="center")
+        title.markdown("<div class='rcm-eyebrow'>Revenue cycle management</div>", unsafe_allow_html=True)
+        title.title(PAGES[page])
+        title.caption(DESCRIPTIONS[page])
+        with action.container(key="rcm-heading-action"):
             if verified:
                 st.download_button(
                     "Export claims CSV", claims_csv(export_rows), f"rcm360-{page_slug(page)}.csv",
