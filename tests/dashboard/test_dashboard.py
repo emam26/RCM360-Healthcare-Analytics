@@ -13,7 +13,8 @@ from streamlit.testing.v1 import AppTest
 
 from dashboard import app
 from dashboard.model import (
-    ClaimFilters, ExportError, claims_csv, denial_reason_pareto, filter_claims, parse_claims, search_claims, summarize,
+    ClaimFilters, ExportError, claims_csv, denial_reason_pareto, discrete_percentile,
+    filter_claims, parse_claims, payment_timing_by_payer, read_json, search_claims, summarize,
 )
 from dashboard.quality import parse_quality
 
@@ -81,6 +82,38 @@ def test_exact_claim_measures_and_csv(claim_payload):
     assert output[0]["claim_id"] == "TEST-DENIED"
     assert output[0]["billed_amount"] == "0.10"
     assert output[0]["submission_to_payment_days"] == ""
+
+
+def test_discrete_percentiles_match_postgresql_rank_semantics():
+    values = [Decimal("1"), Decimal("3"), Decimal("5"), Decimal("7"), Decimal("9")]
+    assert discrete_percentile(values, Decimal("0.50")) == Decimal("5")
+    assert discrete_percentile(values, Decimal("0.90")) == Decimal("9")
+    assert discrete_percentile([], Decimal("0.50")) is None
+    with pytest.raises(ValueError, match="between zero and one"):
+        discrete_percentile(values, Decimal("1.1"))
+
+
+def test_payment_timing_by_payer_uses_paid_claims_and_exact_discrete_percentiles(claim_payload):
+    paid, denied = claim_payload["records"]
+    paid_five_days = dict(
+        paid, claim_id="TEST-PAID-5D", paid_at="2025-01-06T12:00:00",
+        submission_to_payment_days="5.000000",
+    )
+    paid_ten_days = dict(
+        paid, claim_id="TEST-PAID-10D", paid_at="2025-01-11T12:00:00",
+        submission_to_payment_days="10.000000",
+    )
+    other_payer = dict(
+        paid, claim_id="TEST-PAID-OTHER", payer="test_c", paid_at="2025-01-08T12:00:00",
+        submission_to_payment_days="7.000000",
+    )
+    claim_payload["records"] = [paid, paid_five_days, paid_ten_days, other_payer, denied]
+    claim_payload["metadata"]["record_count"] = 5
+    _, claims = parse_claims(claim_payload)
+    assert payment_timing_by_payer(claims) == [
+        ("test_a", 3, Decimal("5.000000"), Decimal("10.000000")),
+        ("test_c", 1, Decimal("7.000000"), Decimal("7.000000")),
+    ]
 
 
 def test_date_and_dimension_intersection_with_drill(claim_payload):
@@ -334,8 +367,8 @@ def test_payer_and_provider_groups_flag_only_counts_below_30(monkeypatch, tmp_pa
     comparisons = [table.value for table in view.dataframe if "Sample caution" in table.value]
     assert len(comparisons) == 2
     for comparison in comparisons:
-        assert comparison["Claims"].tolist() == [30, 29]
-        assert comparison["Denied"].tolist() == [30, 0]
+        assert comparison["Claims (denominator)"].tolist() == [30, 29]
+        assert comparison["Denied (numerator)"].tolist() == [30, 0]
         assert comparison["Sample caution"].tolist() == ["—", "Small sample"]
     assert any("30 claims" in caption.value and "display caution" in caption.value for caption in view.caption)
 
@@ -354,9 +387,22 @@ def test_denial_comparisons_use_the_full_filtered_cohort(monkeypatch, tmp_path, 
     comparisons = [table.value for table in view.dataframe if "Sample caution" in table.value]
     assert len(comparisons) == 2
     for comparison in comparisons:
-        assert comparison["Claims"].tolist() == [2, 1]
-        assert comparison["Denied"].tolist() == [1, 1]
+        assert comparison["Claims (denominator)"].tolist() == [2, 1]
+        assert comparison["Denied (numerator)"].tolist() == [1, 1]
         assert comparison["Observed denial rate"].tolist() == ["50.00%", "100.00%"]
+
+
+def test_revenue_page_shows_paid_subset_payment_percentiles(monkeypatch, tmp_path, claim_payload):
+    monkeypatch.setattr(app, "DATA_DIR", tmp_path)
+    write_fixture(tmp_path, "claims.json", claim_payload)
+    view = AppTest.from_function(run_dashboard).run()
+    view.radio(key="report_page").set_value("Revenue & payments").run()
+    assert not view.exception
+    table = next(item.value for item in view.dataframe if "P50 (discrete median)" in item.value.columns)
+    assert table.to_records(index=False).tolist() == [
+        ("test_a", 1, "2.0 days", "2.0 days", "Small sample"),
+    ]
+    assert any("paid claims only" in item.value for item in view.caption)
 
 
 def test_revenue_status_reconciliation_displays_exact_sums(monkeypatch, tmp_path, claim_payload):
@@ -400,3 +446,36 @@ def test_heatmap_hover_exposes_claim_counts_and_marks_small_cells(monkeypatch, t
     assert not view.exception
     assert view.session_state["drill"] == ("encounter_type", "outpatient")
     assert dashboard_kpis(view)["Total claims"] == "2"
+
+
+def test_committed_exports_match_executive_overview_kpis(monkeypatch):
+    metadata, claims = parse_claims(read_json(app.DATA_DIR / "claims.json"))
+    quality = parse_quality(read_json(app.DATA_DIR / "quality.json"), metadata, claims)
+    issues_by_claim = app.quality_issue_index(quality)
+    captured = {}
+
+    def capture_metrics(items, **kwargs):
+        captured["items"] = items
+
+    monkeypatch.setattr(app, "metric_row", capture_metrics)
+    app.claim_metrics(claims, 0, quality, issues_by_claim)
+
+    claim_count = len({claim.claim_id for claim in claims})
+    denied_count = sum(claim.status == "denied" for claim in claims)
+    billed_amount = sum((claim.billed_amount for claim in claims), Decimal("0"))
+    payer_payments = sum((claim.payer_paid_amount for claim in claims), Decimal("0"))
+    expected = {
+        "Total claims": app.quantity(claim_count),
+        "Billed amount": app.compact_money(billed_amount),
+        "Payer payments": app.compact_money(payer_payments),
+        "Denied claims": app.quantity(denied_count),
+        "Observed denial rate": app.rate(Decimal(denied_count) / Decimal(claim_count)),
+        "Claims with QA findings": app.quantity(app.count_linked_findings(claims, issues_by_claim)),
+    }
+    actual = {title: value for title, value, _ in captured["items"]}
+
+    assert metadata.record_count == claim_count == 4_737
+    assert billed_amount == Decimal("18033949.84")
+    assert payer_payments == Decimal("7938924.10")
+    assert denied_count == 426
+    assert actual == expected

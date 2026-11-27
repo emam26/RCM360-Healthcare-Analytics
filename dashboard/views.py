@@ -8,7 +8,9 @@ from html import escape
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-from dashboard.model import STATUSES, denial_reason_pareto, group_by, ratio, summarize
+from dashboard.model import (
+    STATUSES, denial_reason_pareto, group_by, payment_timing_by_payer, ratio, summarize,
+)
 
 
 INDIGO = "#5145B8"
@@ -266,18 +268,53 @@ def comparison(claims, field: str, title: str) -> None:
         grouped = [(key, summarize(rows)) for key, rows in groups.items()]
         grouped.sort(key=lambda item: (-item[1].count, item[0]))
         st.caption(
+            "Observed denial rate = denied-claim numerator / all-claim denominator in each group. "
             f"Fewer than {SMALL_SAMPLE_THRESHOLD} claims triggers a small-sample display caution. "
             "Statistical reliability depends on the data and analysis."
         )
         rows = [{
             "Provider ID" if field == "provider_id" else "Payer": key,
-            "Claims": item.count, "Denied": item.denied,
+            "Claims (denominator)": item.count, "Denied (numerator)": item.denied,
             "Sample caution": "Small sample" if item.count < SMALL_SAMPLE_THRESHOLD else "—",
             "Billed": money(item.billed),
             "Payer payments": money(item.payer_paid), "Observed denial rate": rate(item.denial_rate),
         } for key, item in grouped]
         st.dataframe(pd.DataFrame(rows), hide_index=True)
         drill_control(f"comparison_{field}", field, [key for key, _ in grouped], "Filter by group")
+
+
+def payment_timing_comparison(claims) -> None:
+    with st.container(border=True):
+        st.subheader("Submission-to-payment timing by payer")
+        st.caption(
+            "Discrete P50 and P90 of recorded days for paid claims only, matching SQL Q17. "
+            f"Groups with fewer than {SMALL_SAMPLE_THRESHOLD} paid claims are flagged. "
+            "This is not cohort-wide turnaround or claim aging."
+        )
+        groups = payment_timing_by_payer(claims)
+        if not groups:
+            st.info("No paid claims with recorded submission-to-payment days match this view.")
+            return
+
+        chart = figure(260)
+        for payer, count, p50, p90 in groups:
+            chart.add_scatter(
+                x=[float(p50), float(p90)], y=[payer, payer], mode="lines+markers",
+                name=payer, line=dict(color=INDIGO, width=4), marker=dict(color=INDIGO, size=9),
+                customdata=[["P50", count], ["P90", count]], showlegend=False,
+                hovertemplate=("%{y}<br>%{customdata[0]}: %{x:.1f} days"
+                               "<br>%{customdata[1]:,} paid claims<extra></extra>"),
+            )
+        chart.update_xaxes(title_text="Submission-to-payment days", rangemode="tozero")
+        chart.update_yaxes(type="category", showgrid=False, autorange="reversed")
+        st.plotly_chart(chart, key="payment_timing_by_payer", theme=None, config={"displaylogo": False})
+        st.dataframe(pd.DataFrame([{
+            "Payer": payer,
+            "Paid claims": count,
+            "P50 (discrete median)": days(p50),
+            "P90 (discrete)": days(p90),
+            "Sample caution": "Small sample" if count < SMALL_SAMPLE_THRESHOLD else "—",
+        } for payer, count, p50, p90 in groups]), hide_index=True)
 
 
 def status_reconciliation(claims) -> None:

@@ -21,7 +21,7 @@ from dashboard.theme import apply_theme
 from dashboard.views import (
     INDIGO, LAVENDER, MATURITY, RED, SELF_PAY, comparison, days, denial_heatmap,
     denial_watchlist, figure, label, metric_row, money, monthly_chart,
-    pareto_chart, quantity, ranked_chart, rate, status_chart, status_reconciliation,
+    pareto_chart, payment_timing_comparison, quantity, ranked_chart, rate, status_chart, status_reconciliation,
 )
 
 
@@ -394,6 +394,7 @@ def revenue(rows: tuple[Claim, ...], filters: ClaimFilters) -> None:
         values = {payer: summarize(claims).responsibility for payer, claims in group_by(rows, "payer").items()}
         ranked_chart(values, "payer", "revenue_responsibility", color=LAVENDER, formatter=money, axis_format="$,.0f")
     comparison(rows, "payer", "Payer performance summary")
+    payment_timing_comparison(rows)
     with st.expander("Financial reconciliation by claim status"):
         status_reconciliation(rows)
 

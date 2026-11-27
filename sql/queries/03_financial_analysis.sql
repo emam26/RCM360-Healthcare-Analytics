@@ -106,11 +106,13 @@ GROUP BY status
 ORDER BY status;
 
 -- Q17. What is the submission-to-payment distribution for observed paid claims?
--- Grain and denominator: one row per payer/type group; claims with observed paid status and payment timestamp.
+-- Grain and denominator: payer roll-ups and payer/type groups; claims with paid status and recorded duration.
+-- The payer roll-up supports the dashboard; the payer/type rows show encounter-type detail.
 -- Limitation: results describe the paid subset. Discrete percentiles select observed durations.
 SELECT
     payer,
     encounter_type,
+    GROUPING(encounter_type) = 1 AS payer_rollup,
     count(*) AS observed_paid_claim_count,
     min(submission_to_payment_days) AS minimum_days,
     percentile_disc(0.25) WITHIN GROUP (ORDER BY submission_to_payment_days) AS p25_days,
@@ -119,8 +121,8 @@ SELECT
     max(submission_to_payment_days) AS maximum_days
 FROM rcm360.claim_analytics
 WHERE status = 'paid' AND submission_to_payment_days IS NOT NULL
-GROUP BY payer, encounter_type
-ORDER BY payer, encounter_type;
+GROUP BY GROUPING SETS ((payer), (payer, encounter_type))
+ORDER BY payer, payer_rollup DESC, encounter_type;
 
 -- Q18. What payment values does the source record for claims labeled self_pay?
 -- Grain and denominator: one row per self_pay status; sum across all payer groups in the same status for share.

@@ -8,7 +8,7 @@ from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass, fields
 from datetime import date, datetime
-from decimal import Decimal
+from decimal import Decimal, ROUND_CEILING
 from pathlib import Path
 
 
@@ -242,6 +242,37 @@ def group_by(claims: Iterable[Claim], key: str) -> dict:
         if value is not None:
             groups.setdefault(value, []).append(claim)
     return groups
+
+
+def discrete_percentile(values: Iterable[Decimal], percentile: Decimal) -> Decimal | None:
+    """Return PostgreSQL percentile_disc's observed value using exact decimal ranks."""
+    if not ZERO <= percentile <= Decimal("1"):
+        raise ValueError("Percentile must be between zero and one.")
+    ordered = sorted(values)
+    if not ordered:
+        return None
+    rank = int((Decimal(len(ordered)) * percentile).to_integral_value(rounding=ROUND_CEILING))
+    return ordered[max(0, rank - 1)]
+
+
+def payment_timing_by_payer(
+    claims: Iterable[Claim],
+) -> list[tuple[str, int, Decimal, Decimal]]:
+    """Summarize discrete P50/P90 submission-to-payment days for paid claims by payer."""
+    summaries = []
+    for payer, rows in group_by(claims, "payer").items():
+        durations = [
+            claim.submission_to_payment_days for claim in rows
+            if claim.status == "paid" and claim.submission_to_payment_days is not None
+        ]
+        if not durations:
+            continue
+        summaries.append((
+            payer, len(durations),
+            discrete_percentile(durations, Decimal("0.50")),
+            discrete_percentile(durations, Decimal("0.90")),
+        ))
+    return sorted(summaries, key=lambda row: row[0])
 
 
 def search_claims(claims: Iterable[Claim], query: str, sort_by: str) -> list[Claim]:
