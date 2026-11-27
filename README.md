@@ -14,6 +14,9 @@
 
 RCM360 examines claim status, denial patterns, source-reported financial fields, payer/provider cohorts, and relational data quality. It uses Python for loading and exports, PostgreSQL for relational analysis and reconciliation, and Streamlit for an interactive dashboard.
 
+> [!TIP]
+> **What I learned:** I learned to protect claim-level measures from one-to-many join inflation, keep payer payments separate from assigned patient responsibility, and trace dashboard KPIs back to SQL and validated exports.
+
 ## Explore the dashboard
 
 | Page | What it shows |
