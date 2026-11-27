@@ -610,11 +610,6 @@ def render_brand_and_nav() -> str:
     return selected_page
 
 
-def render_topbar(page_title: str) -> None:
-    with st.container(key="rcm-topbar"):
-        st.markdown(f"Analytics&nbsp;&nbsp;›&nbsp;&nbsp;<strong>{escape(page_title)}</strong>", unsafe_allow_html=True)
-
-
 def render_heading(page: int, export_rows: list[Claim], verified: bool) -> None:
     with st.container(key="rcm-heading"):
         title, action = st.columns([4.2, 1.6], vertical_alignment="center")
@@ -774,8 +769,6 @@ def main() -> None:
             quality_error = str(error)
     issues_by_claim = quality_issue_index(quality)
     verified = metadata is not None
-    render_topbar(selected_page)
-
     if not claims:
         render_heading(page, [], verified=metadata is not None)
         render_empty_filters()
