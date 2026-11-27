@@ -6,7 +6,7 @@ RCM360 is a reproducible analytics portfolio project using the single, fully syn
 
 This is an analytical demonstration, not a billing system. It contains no real patient or payer records. Source patterns describe a synthetic generator and must not be interpreted as real-world performance.
 
-> **Verification status:** the PostgreSQL schema, source loader, 28-query analysis pack, 32-rule QA audit, JSON exporter, and five-page dashboard are implemented. Python source profiling and automated tests pass. PostgreSQL is not installed or available in this environment, so the SQL pack and exporter have not been executed against a database. No PostgreSQL-reconciled dashboard JSON or populated-dashboard screenshot is published. The app fails closed instead of showing sample business metrics.
+> **Verification status (2026-11-27):** the generated JSON pair passes the export parsers, provenance checks, and source-level reconciliation. All 4,737 claim rows match the pinned CSV snapshot; exact decimal totals match the documented source baseline. The local full QA report matches the exported public projection: 39,946 source rows, 32/32 original rules passed with zero findings, and 64/64 injected findings detected across 32/32 test rules. Both exports report `reconciled_with_postgres=true`. This review could not directly authenticate to the local PostgreSQL service, so it did not independently rerun the 28-query pack or confirm query-by-query results. The populated app runs locally from these exports. They remain local and have not been published or redeployed.
 
 ## Project objectives
 
@@ -26,14 +26,14 @@ flowchart LR
     PG --> SQL[28 analyses and QA]
     SQL --> CHECK[Source and financial reconciliation]
     CHECK --> JSON[Versioned dashboard JSON]
-    JSON --> UI[Streamlit, Shadcn UI, Plotly]
+    JSON --> UI[Streamlit, CSS theme, Plotly]
 ```
 
 The dashboard reads validated JSON files and never connects to PostgreSQL. PostgreSQL remains the required execution and reconciliation layer for final findings and exports. The source archive and extracted CSVs are kept locally and excluded from Git.
 
 ## Source-profile checkpoint
 
-These figures were independently profiled from the pinned CSV source using Python and exact `Decimal` arithmetic. PostgreSQL reproduction remains pending; these are not final database-verified dashboard findings.
+These figures were independently profiled from the pinned CSV source using Python and exact `Decimal` arithmetic. The generated claim export matches all source rows and these exact totals. Its metadata reports PostgreSQL reconciliation; direct database query results were not independently rechecked in this review.
 
 | Measure | Source-profile value |
 | --- | ---: |
@@ -61,11 +61,11 @@ See the [dataset profile](docs/dataset_profile.md), [data contract](docs/data_co
 
 ## Dashboard
 
-Five responsive pages follow the supplied indigo reference layout: executive overview, claims and denials, revenue and payments, payer and provider comparisons, and data quality/QA. Shared filters cover reporting period, payer, provider, and encounter type; the investigation table adds status, search, sorting, pagination, claim detail, drilldown, and filtered CSV export. QA findings remain separate from injected-error test evidence. Financial fields keep their source meanings, and small payer/provider cohorts are flagged.
+Five pages follow the supplied indigo reference structure: executive overview, claims and denials, revenue and payments, payer and provider comparisons, and data quality/QA. Shared filters cover reporting period, payer, provider, and encounter type; the investigation table adds status, search, sorting, pagination, claim detail, drilldown, and filtered CSV export. QA findings remain separate from injected-error test evidence. Financial fields keep their source meanings, and small payer/provider cohorts are flagged.
 
-The UI uses an indigo palette aligned with the local design reference. The reference assets remain local and are not part of the public repository.
+The UI uses an indigo palette aligned with the local design reference. The reference assets remain local and are not part of the public repository. A populated local render was reviewed at desktop width; its five KPI cards currently collapse to narrow columns. A focused frontend improvement plan is recorded in the local reference analysis before further UI changes.
 
-**Screenshots:** populated dashboard screenshots are pending verified PostgreSQL exports. This checkout has no reconciled JSON, and the live app currently shows its explicit missing-export state. No fixture or unverified KPI screenshot is presented as a project result.
+**Screenshots:** no screenshot is published yet. The validated exports remain local, and the UI needs the KPI layout correction and responsive visual review before a portfolio screenshot is added.
 
 ## Technology stack
 
@@ -74,7 +74,7 @@ The UI uses an indigo palette aligned with the local design reference. The refer
 | Data and ETL | Python 3.11, Pandas, NumPy |
 | Relational analysis | PostgreSQL, SQL, SQLAlchemy, Psycopg |
 | QA and reconciliation | PostgreSQL temporary-table audits, deterministic injected cases, exact Python `Decimal` checks |
-| Dashboard | Streamlit, Streamlit Shadcn UI, Plotly, JSON |
+| Dashboard | Streamlit, CSS, Plotly, JSON |
 | Exploratory analysis | Jupyter, Matplotlib, Seaborn |
 | Tests and SQL parsing | Pytest, Pglast |
 
@@ -136,17 +136,17 @@ The notebook rechecks the archive and extracted-member bytes. It displays aggreg
 Run the complete local test suite from the repository root:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest tests/data tests/dashboard -q
+.\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m pip check
 ```
 
-The data/export and dashboard tests use isolated contracts and fixtures. SQL grammar parsing does not execute queries. Passing local tests therefore does not establish PostgreSQL results, production exports, or populated-page visual behavior.
+Current result: **47 tests and 48 subtests passed**; `pip check` reported no broken requirements. The data/export and dashboard tests use isolated contracts and fixtures. SQL grammar parsing does not execute queries. Passing local tests therefore does not establish database query execution. The populated dashboard was inspected locally; visual comparison identified a KPI card layout defect still to fix.
 
 ## Deployment status
 
-The repository has the root `requirements.txt`, root `.streamlit/config.toml`, and root entrypoint `streamlit_app.py` needed to prepare a Streamlit Community Cloud deployment. The dashboard implementation remains in `dashboard/app.py`. Deployment is not complete: this checkout has no PostgreSQL-verified JSON exports, and the app would display only its missing-data state. Publishing that state would not demonstrate the requested analytics. No private data or database credential is placed in the app files.
+The repository has the root `requirements.txt`, root `.streamlit/config.toml`, and root entrypoint `streamlit_app.py` needed for Streamlit Community Cloud. The dashboard implementation remains in `dashboard/app.py`. **No redeploy was made during this review.** The generated exports are local, untracked files and the existing public app does not receive them from this checkout. No credentials or direct patient identifiers are present in the exports reviewed here.
 
-Community Cloud is a free hosting option, but publishing requires the owner's GitHub authorization and a successfully built app. Its current deployment guide defaults to Python 3.12 and allows choosing the runtime in Advanced settings; select and verify the project's tested Python version before deployment. See the [official deploy guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) and [dependency guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/app-dependencies). RCM360 has not been deployed.
+Community Cloud updates an existing app when its connected GitHub branch changes, so publishing exports or documentation to that branch may also update the live app. Keep deployment paused until the KPI layout is corrected, responsive rendering is reviewed, and the export files are explicitly approved for public hosting. See the [official deploy guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) and [dependency guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/app-dependencies).
 
 ## Project references
 

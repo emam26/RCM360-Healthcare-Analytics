@@ -1,6 +1,6 @@
 # Data and dashboard contract
 
-Status: **CSV schema verified; PostgreSQL and dashboard contract still pending execution**. The source schema below was profiled in `docs/dataset_profile.md` and key claims totals were independently checked with Python `Decimal`. PostgreSQL results remain a release gate.
+Status (2026-11-27): **CSV schema and generated dashboard export contract verified; database execution is reported by export metadata but was not independently reconnected during this review.** All exported claim rows and exact numeric values match the pinned CSV source. The claims and quality exports share the pinned source hash and pass their parsers. Direct SQL execution evidence for the 28-query pack is not stored in this repository.
 
 ## Source and privacy
 
@@ -27,7 +27,7 @@ Relevant grain-safe paths:
 - There is no currency column, observation cutoff, remittance ledger, appeal/resubmission history, service-line detail, patient-payment transaction, or charge-adjustment field.
 - Do not require claim submission or outcome after discharge. Observed source records include 278 submissions, 12 payments, and 4 denials before discharge; all claim submissions follow encounter admission and all payment/denial timestamps follow submission.
 
-## Python reconciliation baseline (pending PostgreSQL reproduction)
+## Source reconciliation baseline
 
 Independent Python `Decimal` checks against the raw CSVs produced these exact all-status totals:
 
