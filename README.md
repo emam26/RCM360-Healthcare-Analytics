@@ -6,7 +6,7 @@ RCM360 is a reproducible analytics portfolio project using the single, fully syn
 
 This is an analytical demonstration, not a billing system. It contains no real patient or payer records. Source patterns describe a synthetic generator and must not be interpreted as real-world performance.
 
-> **Verification status (2026-11-27):** the generated JSON pair passes the export parsers, provenance checks, and source-level reconciliation. All 4,737 claim rows match the pinned CSV snapshot; exact decimal totals match the documented source baseline. The local full QA report matches the exported public projection: 39,946 source rows, 32/32 original rules passed with zero findings, and 64/64 injected findings detected across 32/32 test rules. Both exports report `reconciled_with_postgres=true`. This review could not directly authenticate to the local PostgreSQL service, so it did not independently rerun the 28-query pack or confirm query-by-query results. The populated app runs locally from these exports. They remain local and have not been published or redeployed.
+> **Verification status (2026-11-27):** the generated JSON pair passes the export parsers, provenance checks, and source-level reconciliation. All 4,737 claim rows match the pinned CSV snapshot; exact decimal totals match the documented source baseline. The local full QA report matches the exported public projection: 39,946 source rows, 32/32 original rules passed with zero findings, and 64/64 injected findings detected across 32/32 test rules. Both exports report `reconciled_with_postgres=true`. This review could not directly authenticate to the local PostgreSQL service, so it did not independently rerun the 28-query pack or confirm query-by-query results. The validated, privacy-minimized exports are included in the repository. They contain no direct patient identifiers; the records are synthetic and CC0.
 
 ## Project objectives
 
@@ -63,9 +63,11 @@ See the [dataset profile](docs/dataset_profile.md), [data contract](docs/data_co
 
 Five pages follow the supplied indigo reference structure: executive overview, claims and denials, revenue and payments, payer and provider comparisons, and data quality/QA. Shared filters cover reporting period, payer, provider, and encounter type; the investigation table adds status, search, sorting, pagination, claim detail, drilldown, and filtered CSV export. QA findings remain separate from injected-error test evidence. Financial fields keep their source meanings, and small payer/provider cohorts are flagged.
 
-The UI uses an indigo palette aligned with the local design reference. The reference assets remain local and are not part of the public repository. A populated local render was reviewed at desktop width; its five KPI cards currently collapse to narrow columns. A focused frontend improvement plan is recorded in the local reference analysis before further UI changes.
+The UI uses an indigo palette aligned with the local design reference. The reference assets remain local and are not part of the public repository. The Executive Overview was visually reviewed at 1440×1000, 1024×900, and 390×844. Its six KPI cards reflow from six columns on wide desktop to three on tablet and two on phone. Filters have visible borders and keyboard focus, the CSV action uses a high-contrast indigo treatment, and chart labels use darker text.
 
-**Screenshots:** no screenshot is published yet. The validated exports remain local, and the UI needs the KPI layout correction and responsive visual review before a portfolio screenshot is added.
+**Executive Overview screenshot:**
+
+![RCM360 Executive Overview dashboard](docs/images/executive-overview.png)
 
 ## Technology stack
 
@@ -140,13 +142,13 @@ Run the complete local test suite from the repository root:
 .\.venv\Scripts\python.exe -m pip check
 ```
 
-Current result: **47 tests and 48 subtests passed**; `pip check` reported no broken requirements. The data/export and dashboard tests use isolated contracts and fixtures. SQL grammar parsing does not execute queries. Passing local tests therefore does not establish database query execution. The populated dashboard was inspected locally; visual comparison identified a KPI card layout defect still to fix.
+Current result: **47 tests and 48 subtests passed**; `pip check` reported no broken requirements. The data/export and dashboard tests use isolated contracts and fixtures. SQL grammar parsing does not execute queries. Passing local tests therefore does not establish database query execution. The populated dashboard was inspected locally at desktop, tablet, and phone widths; the Executive Overview's KPI layout and filter focus states were checked in a browser.
 
 ## Deployment status
 
-The repository has the root `requirements.txt`, root `.streamlit/config.toml`, and root entrypoint `streamlit_app.py` needed for Streamlit Community Cloud. The dashboard implementation remains in `dashboard/app.py`. **No redeploy was made during this review.** The generated exports are local, untracked files and the existing public app does not receive them from this checkout. No credentials or direct patient identifiers are present in the exports reviewed here.
+The repository has the root `requirements.txt`, root `.streamlit/config.toml`, root entrypoint `streamlit_app.py`, and validated exports required by Streamlit Community Cloud. The dashboard implementation remains in `dashboard/app.py`. No credentials or direct patient identifiers are included in the published files.
 
-Community Cloud updates an existing app when its connected GitHub branch changes, so publishing exports or documentation to that branch may also update the live app. Keep deployment paused until the KPI layout is corrected, responsive rendering is reviewed, and the export files are explicitly approved for public hosting. See the [official deploy guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) and [dependency guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/app-dependencies).
+Pushing to the GitHub branch connected to the existing Community Cloud app can trigger an app update. Check the Streamlit deployment status after the repository push. See the [official deploy guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) and [dependency guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/app-dependencies).
 
 ## Project references
 
