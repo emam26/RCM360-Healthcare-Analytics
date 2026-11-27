@@ -609,13 +609,12 @@ def render_brand_and_nav() -> str:
     return selected_page
 
 
-def render_topbar(page_title: str, verified: bool) -> None:
-    status = "PostgreSQL-reconciled export" if verified else "Validated data pending"
+def render_topbar(page_title: str) -> None:
     with st.container(key="rcm-topbar"):
         breadcrumb, identity = st.columns([1.5, 1], vertical_alignment="center")
         breadcrumb.markdown(f"Analytics&nbsp;&nbsp;›&nbsp;&nbsp;<strong>{escape(page_title)}</strong>", unsafe_allow_html=True)
         identity.markdown(
-            f"<div class='rcm-topbar-right'><span class='rcm-environment'>{status}</span><span class='rcm-avatar'>DA</span></div>",
+            "<div class='rcm-topbar-right'><span class='rcm-avatar' aria-label='Data analyst profile'>DA</span></div>",
             unsafe_allow_html=True,
         )
 
@@ -764,7 +763,7 @@ def main() -> None:
             quality_error = str(error)
     issues_by_claim = quality_issue_index(quality)
     verified = metadata is not None
-    render_topbar(selected_page, verified)
+    render_topbar(selected_page)
 
     if not claims:
         render_heading(page, [], verified=metadata is not None)
