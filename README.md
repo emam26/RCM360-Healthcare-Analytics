@@ -63,11 +63,30 @@ See the [dataset profile](docs/dataset_profile.md), [data contract](docs/data_co
 
 Five pages follow the supplied indigo reference structure: executive overview, claims and denials, revenue and payments, payer and provider comparisons, and data quality/QA. Shared filters cover reporting period, payer, provider, and encounter type; the investigation table adds status, search, sorting, pagination, claim detail, drilldown, and filtered CSV export. QA findings remain separate from injected-error test evidence. Financial fields keep their source meanings, and small payer/provider cohorts are flagged.
 
+Revenue & Payments includes a payer-level submission-to-payment view with discrete P50 and P90 values and paid-claim counts. It uses only paid claims with recorded durations, flags groups with fewer than 30 paid claims, and is explicitly not a cohort-wide turnaround measure. Payer/provider denial tables label the denied numerator and all-claim denominator beside each observed rate.
+
 The UI uses an indigo palette aligned with the local design reference. The reference assets remain local and are not part of the public repository. The Executive Overview was visually reviewed at 1440×1000, 1024×900, and 390×844. Its six KPI cards reflow from six columns on wide desktop to three on tablet and two on phone. Filters have visible borders and keyboard focus, the CSV action uses a high-contrast indigo treatment, and chart labels use darker text.
 
 **Executive Overview screenshot:**
 
 ![RCM360 Executive Overview dashboard](docs/images/executive-overview.png)
+
+## KPI definitions and SQL crosswalk
+
+Dashboard figures use the claim-level export after shared filters are applied. The regression test `test_committed_exports_match_executive_overview_kpis` reads the committed privacy-minimized exports, recomputes each Executive Overview KPI from claim records, and compares those values with the dashboard's production KPI builder. It also checks the exact claim count and source financial totals documented above.
+
+| Dashboard measure | Definition | SQL or evidence |
+| --- | --- | --- |
+| Total claims | Unique `claim_id` rows in the filtered cohort | Q03; Q26 reconciliation |
+| Billed amount | Sum of source `billed_amount` | Q11; Q26 reconciliation |
+| Payer payments | Sum of source `paid_amount` (`payer_paid_amount` in JSON); not total collections | Q11; Q26 reconciliation |
+| Denied claims | Claim rows with observed `status = 'denied'` | Q03; Q04 payer groups; Q05 provider groups |
+| Observed denial rate | Denied claim count divided by all claim rows in the cohort; payer/provider tables expose both counts | Q03–Q05; Q28 by submission month |
+| Denial reason frequency | Denied claims with a recorded reason; no root cause is inferred | Q07; Q08 reason incidence |
+| P50/P90 payment timing | Discrete percentiles of `submission_to_payment_days` for paid claims with recorded duration, grouped by payer | Q17 payer roll-up; Q17 also reports payer/encounter-type detail |
+| Claims with QA findings | Unique filtered claim IDs with linkable original-source QA issues; injected-test issues are excluded | `quality.json` original section and the shared data contract |
+
+Percentiles use the same discrete observed-value rule as PostgreSQL `percentile_disc`; values are never interpolated. All timing results describe the paid subset. Monthly denial rates describe current status by submission cohort because the dataset has no observation cutoff or maturity window.
 
 ## Technology stack
 
@@ -142,7 +161,7 @@ Run the complete local test suite from the repository root:
 .\.venv\Scripts\python.exe -m pip check
 ```
 
-Current result: **47 tests and 48 subtests passed**; `pip check` reported no broken requirements. The data/export and dashboard tests use isolated contracts and fixtures. SQL grammar parsing does not execute queries. Passing local tests therefore does not establish database query execution. The populated dashboard was inspected locally at desktop, tablet, and phone widths; the Executive Overview's KPI layout and filter focus states were checked in a browser.
+Current result: **51 tests and 48 subtests passed**; `pip check` reported no broken requirements. The suite includes exact discrete-percentile checks and a regression test that recomputes Executive Overview KPIs from the committed claims/quality exports, then compares them with the production KPI builder and exact source totals. Data/export and dashboard tests also use isolated contracts and fixtures. SQL grammar parsing does not execute queries. Passing local tests therefore does not establish database query execution. The populated dashboard was inspected locally at desktop, tablet, and phone widths; the Executive Overview's KPI layout and filter focus states were checked in a browser.
 
 ## Deployment status
 

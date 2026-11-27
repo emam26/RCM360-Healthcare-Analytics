@@ -35,7 +35,7 @@ The catalog maps each query to its output grain. Counts always refer to the coho
 | Q14 | Stored allowed ratio and amount tolerance | Status |
 | Q15 | Billed, allowed, and recorded payment ordering | Status |
 | Q16 | Assigned responsibility versus billed-minus-allowed | Status |
-| Q17 | Observed paid claim submission-to-payment distribution | Payer and encounter type |
+| Q17 | Observed paid claim submission-to-payment distribution | Payer roll-up and payer × encounter type |
 | Q18 | Recorded payments on self-pay claims | Status within self-pay |
 | [Q19](04_operational_context.sql) | Recorded claim events before discharge | Encounter type |
 | Q20 | Denial rate by documented diagnosis category | Category and encounter type, with overlapping categories |
