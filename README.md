@@ -4,8 +4,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
-[![Data](https://img.shields.io/badge/Source-Synthetic%20%7C%20CC0-334155)](https://www.misata.studio/datasets/hospital-encounters-claims)
+
 
 > **Dataset:** Misata Hospital Encounters, Diagnoses and Claims. The source is fully synthetic; the project contains no real patient or payer records.
 
