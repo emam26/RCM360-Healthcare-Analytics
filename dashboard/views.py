@@ -48,29 +48,29 @@ def label(value: str) -> str:
 
 def metric_row(items: list[tuple[str, str, str]], *, key: str = "rcm-kpis") -> None:
     with st.container(key=key):
-        for column, (title, value, definition) in zip(st.columns(len(items)), items):
-            with column:
-                lowered = title.casefold()
-                tone = "red" if any(word in lowered for word in ("denial", "finding", "flagged")) else "indigo"
-                if "payment" in lowered or "time" in lowered:
-                    icon = '<path d="M3 12h3l2.3-6 4.2 12 2.3-6H21"/>'
-                elif "denial" in lowered or "finding" in lowered or "flagged" in lowered:
-                    icon = '<path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v4m0 3h.01"/>'
-                elif "pass" in lowered or "test" in lowered:
-                    icon = '<path d="m5 12 4 4L19 6"/><path d="M21 12a9 9 0 1 1-2.64-6.36"/>'
-                elif any(word in lowered for word in ("amount", "billed", "responsibility")):
-                    icon = '<path d="M12 2v20m5-16H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'
-                else:
-                    icon = '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/>'
-                card = (
-                    f'<article class="rcm-kpi-card" data-kpi-label="{escape(title)}" data-kpi-value="{escape(str(value))}">'
-                    f'<div class="rcm-kpi-top"><span class="rcm-kpi-label">{escape(title)}</span>'
-                    f'<span class="rcm-kpi-icon {tone}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" '
-                    f'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{icon}</svg></span></div>'
-                    f'<div class="rcm-kpi-value">{escape(str(value))}</div>'
-                    f'<div class="rcm-kpi-foot">{escape(definition)}</div></article>'
-                )
-                st.markdown(card, unsafe_allow_html=True)
+        cards = []
+        for title, value, definition in items:
+            lowered = title.casefold()
+            tone = "red" if any(word in lowered for word in ("denial", "finding", "flagged")) else "indigo"
+            if "payment" in lowered or "time" in lowered:
+                icon = '<path d="M3 12h3l2.3-6 4.2 12 2.3-6H21"/>'
+            elif "denial" in lowered or "finding" in lowered or "flagged" in lowered:
+                icon = '<path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v4m0 3h.01"/>'
+            elif "pass" in lowered or "test" in lowered:
+                icon = '<path d="m5 12 4 4L19 6"/><path d="M21 12a9 9 0 1 1-2.64-6.36"/>'
+            elif any(word in lowered for word in ("amount", "billed", "responsibility")):
+                icon = '<path d="M12 2v20m5-16H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>'
+            else:
+                icon = '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/>'
+            cards.append(
+                f'<article class="rcm-kpi-card" data-kpi-label="{escape(title)}" data-kpi-value="{escape(str(value))}">'
+                f'<div class="rcm-kpi-top"><span class="rcm-kpi-label">{escape(title)}</span>'
+                f'<span class="rcm-kpi-icon {tone}" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" '
+                f'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">{icon}</svg></span></div>'
+                f'<div class="rcm-kpi-value">{escape(str(value))}</div>'
+                f'<div class="rcm-kpi-foot">{escape(definition)}</div></article>'
+            )
+        st.markdown('<div class="rcm-kpi-grid">' + "".join(cards) + "</div>", unsafe_allow_html=True)
 
 
 def figure(height: int = 300) -> go.Figure:
@@ -79,10 +79,10 @@ def figure(height: int = 300) -> go.Figure:
         margin=dict(l=10, r=10, t=12, b=8),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color=INK),
-        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center"),
-        xaxis=dict(automargin=True, gridcolor=GRID),
-        yaxis=dict(automargin=True, gridcolor=GRID),
+        font=dict(color=INK, family='Inter, "Segoe UI", system-ui, sans-serif', size=12),
+        legend=dict(orientation="h", y=-0.25, x=0.5, xanchor="center", font=dict(color=INK, size=11)),
+        xaxis=dict(automargin=True, gridcolor=GRID, tickfont=dict(color=INK, size=10), title_font=dict(color=INK)),
+        yaxis=dict(automargin=True, gridcolor=GRID, tickfont=dict(color=INK, size=10), title_font=dict(color=INK)),
     )
 
 
@@ -172,7 +172,8 @@ def ranked_chart(
     chart = figure(255)
     chart.add_bar(
         x=[float(values[item]) for item in shown], y=names,
-        marker_color=color, orientation="h", text=texts, textposition="auto",
+        marker_color=color, orientation="h", text=texts, textposition="outside",
+        textfont=dict(color=INK, size=11), cliponaxis=False,
         customdata=list(zip(shown, texts)), hovertemplate="%{y}<br>%{customdata[1]}<extra></extra>",
     )
     chart.update_xaxes(tickformat=axis_format, rangemode="tozero")

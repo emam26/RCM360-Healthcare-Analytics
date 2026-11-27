@@ -134,8 +134,7 @@ def dashboard_kpis(view):
     cards = {}
     pattern = re.compile(r'data-kpi-label="([^"]*)" data-kpi-value="([^"]*)"')
     for item in view.markdown:
-        match = pattern.search(item.value)
-        if match:
+        for match in pattern.finditer(item.value):
             cards[html.unescape(match.group(1))] = html.unescape(match.group(2))
     return cards
 
@@ -145,7 +144,7 @@ def test_dashboard_missing_and_empty_export(monkeypatch, tmp_path, claim_payload
     view = AppTest.from_function(run_dashboard).run()
     assert not view.exception
     assert any("Validated dashboard data is unavailable" in item.value for item in view.markdown)
-    assert len(dashboard_kpis(view)) == 5
+    assert len(dashboard_kpis(view)) == 6
     assert set(dashboard_kpis(view).values()) == {"—"}
     claim_payload["records"] = []
     claim_payload["metadata"]["record_count"] = 0
@@ -155,14 +154,14 @@ def test_dashboard_missing_and_empty_export(monkeypatch, tmp_path, claim_payload
     assert any("zero records" in item.value for item in view.markdown)
 
 
-def test_missing_export_keeps_the_five_page_frame(monkeypatch, tmp_path):
+def test_missing_export_keeps_each_page_kpi_frame(monkeypatch, tmp_path):
     monkeypatch.setattr(app, "DATA_DIR", tmp_path)
     view = AppTest.from_function(run_dashboard).run()
-    for page in app.PAGES[1:]:
+    for page_index, page in enumerate(app.PAGES):
         view.radio(key="report_page").set_value(page).run()
         assert not view.exception
         assert any(item.value == page for item in view.title)
-        assert len(dashboard_kpis(view)) == 5
+        assert len(dashboard_kpis(view)) == len(app.page_metric_labels(page_index))
         assert set(dashboard_kpis(view).values()) == {"—"}
 
 

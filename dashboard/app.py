@@ -38,6 +38,7 @@ DESCRIPTIONS = (
 )
 GLOBAL_FILTER_FIELDS = ("payer", "provider_id", "encounter_type")
 FILTER_LABELS = {"payer": "Insurance payer", "provider_id": "Provider", "encounter_type": "Encounter type"}
+FILTER_PLACEHOLDERS = {"payer": "Any payer", "provider_id": "Any provider", "encounter_type": "Any type"}
 NAV_MARKS = {
     "Executive overview": "▦",
     "Claims & denials": "↗",
@@ -161,14 +162,14 @@ def selected_filters(periods: dict[str, tuple[date, date]]) -> ClaimFilters:
 
 def choose_filters(claims: tuple[Claim, ...], periods: dict[str, tuple[date, date]], default_period: str) -> None:
     with st.container(key="rcm-filters"):
-        columns = st.columns([1.2, 1.2, 1.15, 1.2, 0.8], vertical_alignment="bottom")
+        columns = st.columns([1.2, 1.2, 1.15, 1.2, 0.95], vertical_alignment="bottom")
         columns[0].selectbox(
             "Reporting period", list(periods), key=REPORT_PERIOD_KEY, on_change=clear_drill,
         )
         for column, field in zip(columns[1:4], GLOBAL_FILTER_FIELDS):
             options = sorted({getattr(claim, field) for claim in claims})
             column.selectbox(
-                FILTER_LABELS[field], options, index=None, key=f"filter_{field}", placeholder=f"All {FILTER_LABELS[field].lower()}s" if field != "encounter_type" else "All encounter types",
+                FILTER_LABELS[field], options, index=None, key=f"filter_{field}", placeholder=FILTER_PLACEHOLDERS[field],
                 format_func=str if field in ("payer", "provider_id") else label,
                 on_change=clear_drill,
             )
@@ -249,7 +250,14 @@ def claim_metrics(rows: tuple[Claim, ...], page: int, quality: Quality | None,
             qa_note = "Unique claims with linkable source QA findings."
             if quality is None:
                 qa_note = "Source QA evidence is not available in the validated export pair."
-            metric_row([claim_count, billed, payer, denied, ("Claims with QA findings", qa_value, qa_note)])
+            metric_row([
+                claim_count,
+                billed,
+                payer,
+                ("Denied claims", quantity(metrics.denied), "Claims with observed denied status."),
+                denied,
+                ("Claims with QA findings", qa_value, qa_note),
+            ])
         case 1:
             metric_row([
                 claim_count,
@@ -290,7 +298,7 @@ def claim_metrics(rows: tuple[Claim, ...], page: int, quality: Quality | None,
 
 def page_metric_labels(page: int) -> tuple[str, ...]:
     return (
-        ("Total claims", "Billed amount", "Payer payments", "Observed denial rate", "Claims with QA findings"),
+        ("Total claims", "Billed amount", "Payer payments", "Denied claims", "Observed denial rate", "Claims with QA findings"),
         ("Total claims", "Denied claims", "Observed denial rate", "Denied billed value", "Pending claims"),
         ("Billed amount", "Allowed amount", "Payer payments", "Patient responsibility", "Mean time to payment"),
         ("Total claims", "Active payers", "Active providers", "Observed denial rate", "Mean time to payment"),
@@ -598,13 +606,6 @@ def render_brand_and_nav() -> str:
             format_func=lambda page: f"{NAV_MARKS[page]}   {page}",
             label_visibility="collapsed",
         )
-        with st.container(key="rcm-sidebar-footer"):
-            st.markdown(
-                "<div class='rcm-side-note'><strong>Portfolio environment</strong><br>"
-                "Synthetic source data. No real patient records. The dashboard uses only validated, privacy-minimized exports.</div>"
-                "<p>HEALTHCARE DATA OPERATIONS<br>Indigo edition · analytics portfolio</p>",
-                unsafe_allow_html=True,
-            )
     return selected_page
 
 
@@ -637,7 +638,7 @@ def render_heading(page: int, export_rows: list[Claim], verified: bool) -> None:
 
 def render_empty_filters() -> None:
     with st.container(key="rcm-empty-filters"):
-        cols = st.columns([1.2, 1.2, 1.15, 1.2, 0.8], vertical_alignment="bottom")
+        cols = st.columns([1.2, 1.2, 1.15, 1.2, 0.95], vertical_alignment="bottom")
         cols[0].selectbox("Reporting period", ["Waiting for validated export"], disabled=True)
         cols[1].selectbox("Insurance payer", ["Unavailable"], disabled=True)
         cols[2].selectbox("Provider", ["Unavailable"], disabled=True)
@@ -733,7 +734,7 @@ def render_missing_investigation(page: int, error: str) -> None:
 
 def render_footer() -> None:
     with st.container(key="rcm-footer"):
-        st.markdown("RCM360 · Synthetic healthcare analytics portfolio · No patient identifiers in dashboard exports")
+        st.markdown("RCM360 · Revenue cycle analytics")
 
 
 def main() -> None:
