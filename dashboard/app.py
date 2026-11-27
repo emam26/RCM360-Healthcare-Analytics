@@ -622,18 +622,18 @@ def render_topbar(page_title: str, verified: bool) -> None:
 
 def render_heading(page: int, export_rows: list[Claim], verified: bool) -> None:
     with st.container(key="rcm-heading"):
-        title, action = st.columns([5, 1.25], vertical_alignment="bottom")
-        title.markdown("<div class='rcm-eyebrow'>Revenue cycle management</div>", unsafe_allow_html=True)
-        title.title(PAGES[page])
-        title.caption(DESCRIPTIONS[page])
-        if verified:
-            action.download_button(
-                "Export claims CSV", claims_csv(export_rows), f"rcm360-{page_slug(page)}.csv",
-                "text/csv", key=f"export_{page}", disabled=not export_rows, on_click="ignore",
-                width="content",
-            )
-        else:
-            action.button("Export claims CSV", disabled=True, width="stretch")
+        st.markdown("<div class='rcm-eyebrow'>Revenue cycle management</div>", unsafe_allow_html=True)
+        st.title(PAGES[page])
+        st.caption(DESCRIPTIONS[page])
+        with st.container(key="rcm-heading-action"):
+            if verified:
+                st.download_button(
+                    "Export claims CSV", claims_csv(export_rows), f"rcm360-{page_slug(page)}.csv",
+                    "text/csv", key=f"export_{page}", disabled=not export_rows, on_click="ignore",
+                    width="content", icon=":material/download:",
+                )
+            else:
+                st.button("Export claims CSV", disabled=True, width="content", icon=":material/download:")
 
 
 def render_empty_filters() -> None:
