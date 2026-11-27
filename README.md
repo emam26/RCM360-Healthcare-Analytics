@@ -1,39 +1,39 @@
 # RCM360
 
-**Healthcare Revenue Cycle Analytics & Data Quality Intelligence**
+**An auditable healthcare revenue cycle analytics and data quality portfolio.**
 
-RCM360 is a reproducible analytics portfolio project using the single, fully synthetic [Misata Hospital Encounters, Diagnoses and Claims dataset](https://www.misata.studio/datasets/hospital-encounters-claims). It examines claim status, denial patterns, financial source fields, payer/provider cohorts, and relational data quality through Python, PostgreSQL, SQL, and an interactive Streamlit dashboard.
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Streamlit](https://img.shields.io/badge/Dashboard-Streamlit-FF4B4B?logo=streamlit&logoColor=white)](https://streamlit.io/)
+[![Data](https://img.shields.io/badge/Source-Synthetic%20%7C%20CC0-334155)](https://www.misata.studio/datasets/hospital-encounters-claims)
 
-This is an analytical demonstration, not a billing system. It contains no real patient or payer records. Source patterns describe a synthetic generator and must not be interpreted as real-world performance.
+> **Dataset:** Misata Hospital Encounters, Diagnoses and Claims. The source is fully synthetic; the project contains no real patient or payer records.
 
-> **Verification status (2026-11-27):** the generated JSON pair passes the export parsers, provenance checks, and source-level reconciliation. All 4,737 claim rows match the pinned CSV snapshot; exact decimal totals match the documented source baseline. The local full QA report matches the exported public projection: 39,946 source rows, 32/32 original rules passed with zero findings, and 64/64 injected findings detected across 32/32 test rules. Both exports report `reconciled_with_postgres=true`. This review could not directly authenticate to the local PostgreSQL service, so it did not independently rerun the 28-query pack or confirm query-by-query results. The validated, privacy-minimized exports are included in the repository. They contain no direct patient identifiers; the records are synthetic and CC0.
+## Overview
 
-## Project objectives
+RCM360 examines claim status, denial patterns, source-reported financial fields, payer/provider cohorts, and relational data quality. It uses Python for loading and exports, PostgreSQL for relational analysis and reconciliation, and Streamlit for an interactive dashboard.
 
-- Verify the source archive, table grains, keys, relationships, missingness, and financial semantics.
-- Build a typed and repeatable load into a locally run PostgreSQL schema.
-- Analyze claims and their one-to-many clinical context without duplicating claim counts or amounts.
-- Implement read-only SQL analyses and separate original-data QA from deliberately injected test defects.
-- Reconcile PostgreSQL results to the pinned source, then export versioned, privacy-minimized JSON.
-- Present verified results through a five-page interactive dashboard with filters, drilldown, and CSV export.
+This is an analytical demonstration, not a billing system. Findings describe a synthetic dataset and should not be interpreted as real-world payer or provider performance.
 
-## Architecture
+## Explore the dashboard
 
-```mermaid
-flowchart LR
-    CSV[SHA-256-verified Misata archive] --> ETL[Typed Python loader]
-    ETL --> PG[(Local PostgreSQL)]
-    PG --> SQL[28 analyses and QA]
-    SQL --> CHECK[Source and financial reconciliation]
-    CHECK --> JSON[Versioned dashboard JSON]
-    JSON --> UI[Streamlit, CSS theme, Plotly]
-```
+| Page | What it shows |
+| --- | --- |
+| **Executive Overview** | Claim volume, billed amount, payer payments, observed denials, and linked QA findings. |
+| **Claims & denials** | Denial reasons, status patterns, submission cohorts, and claim-level investigation. |
+| **Revenue & payments** | Source-reported financial amounts, reconciliation, and payer payment timing. |
+| **Payer & provider** | Cohort comparisons with explicit denial numerators, denominators, and small-sample cautions. |
+| **Data quality & QA** | Original-source checks and separate injected-defect test evidence. |
 
-The dashboard reads validated JSON files and never connects to PostgreSQL. PostgreSQL remains the required execution and reconciliation layer for final findings and exports. The source archive and extracted CSVs are kept locally and excluded from Git.
+Shared filters cover reporting period, payer, provider, and encounter type. The claim investigation view supports search, sorting, pagination, drilldown, and filtered CSV export.
 
-## Source-profile checkpoint
+**Executive Overview screenshot:**
 
-These figures were independently profiled from the pinned CSV source using Python and exact `Decimal` arithmetic. The generated claim export matches all source rows and these exact totals. Its metadata reports PostgreSQL reconciliation; direct database query results were not independently rechecked in this review.
+![RCM360 Executive Overview dashboard](docs/images/executive-overview.png)
+
+## Data coverage and verification
+
+These profile values were computed from the pinned CSV source using Python and exact `Decimal` arithmetic. All 4,737 claim export rows match the pinned source. The source and exported QA evidence includes 32/32 original checks passed with zero findings, plus 64/64 expected injected defects detected across 32 test rules. Export metadata reports PostgreSQL reconciliation; direct database query results were not independently re-run in the latest review.
 
 | Measure | Source-profile value |
 | --- | ---: |
@@ -44,130 +44,139 @@ These figures were independently profiled from the pinned CSV source using Pytho
 | Billed amount | 18,033,949.84 |
 | Allowed amount | 9,172,905.62 |
 | Recorded payer payments | 7,938,924.10 |
-| Patient responsibility assigned | 7,779,126.53 |
+| Assigned patient responsibility | 7,779,126.53 |
 | Billed amount on denied claims | 1,495,593.80 |
 
-The largest recorded denial-reason labels are `not_medically_necessary` (123), `missing_authorization` (96), and `out_of_network` (88). These source labels do not prove root cause. Denied billed amount is descriptive exposure, not confirmed loss or recoverable revenue.
+The most frequent recorded denial reasons are `not_medically_necessary` (123), `missing_authorization` (96), and `out_of_network` (88). These are source labels, not verified root causes. Denied billed amount is descriptive exposure, not confirmed loss or recoverable revenue.
 
 Interpretation limits:
 
-- The snapshot has no observation cutoff or maturity window, so monthly denial shares are observed status proportions, not mature cohort outcomes.
-- `paid_amount` is the publisher's payer-payment field. It includes 606,755.02 recorded under `self_pay` in this synthetic source.
-- Patient responsibility is an assigned amount; the dataset has no patient-payment transactions, remittance ledger, or adjustment history.
-- There is no currency field. Do not infer total collections, collection rates, aging, overdue balances, or denial recovery.
-- Diagnoses, labs, and prescriptions are one-to-many encounter tables. Aggregate them before joining to claim-level financial measures.
+- The snapshot has no observation cutoff or maturity window. Monthly denial shares describe observed status by submission cohort, not mature cohort outcomes.
+- `paid_amount` is the source's payer-payment field. It includes 606,755.02 recorded under the `self_pay` label in this synthetic dataset.
+- Patient responsibility is an assigned amount; there are no patient-payment transactions, remittance ledger, or adjustment history.
+- The source has no currency field. Do not infer total collections, collection rates, aging, overdue balances, or denial recovery.
+- Diagnoses, labs, and prescriptions are one-to-many encounter tables. Aggregate these before joining to claim-level financial measures.
 
-See the [dataset profile](docs/dataset_profile.md), [data contract](docs/data_contract.md), and [business questions](docs/business_questions.md) for provenance, definitions, and limits.
+See the [dataset profile](docs/dataset_profile.md), [data contract](docs/data_contract.md), and [business questions](docs/business_questions.md) for provenance, definitions, and limitations.
 
-## Dashboard
+## Engineering highlights
 
-Five pages follow the supplied indigo reference structure: executive overview, claims and denials, revenue and payments, payer and provider comparisons, and data quality/QA. Shared filters cover reporting period, payer, provider, and encounter type; the investigation table adds status, search, sorting, pagination, claim detail, drilldown, and filtered CSV export. QA findings remain separate from injected-error test evidence. Financial fields keep their source meanings, and small payer/provider cohorts are flagged.
+- **Reproducible source checks:** the loader verifies the pinned source archive and its table structure before importing.
+- **Relational analysis:** PostgreSQL schema and views retain explicit table grains; the repository includes the existing 28 SQL queries.
+- **Financial reconciliation:** exact decimal checks protect claim counts and source financial totals from join multiplication or rounding drift.
+- **Separate QA evidence:** original-source findings are distinct from deliberately injected test defects.
+- **Privacy-minimized exports:** the dashboard reads validated JSON and does not connect to PostgreSQL. Public claim exports omit direct patient identifiers and injected issue details.
+- **Analytical context:** payer payment timing reports discrete P50/P90 for paid claims with recorded durations. Denial rates show their numerator and denominator. Neither is presented as a broader outcome than the source supports.
+- **Consistent dashboard KPIs:** automated tests compare committed JSON exports with the production Executive Overview KPI calculations.
 
-Revenue & Payments includes a payer-level submission-to-payment view with discrete P50 and P90 values and paid-claim counts. It uses only paid claims with recorded durations, flags groups with fewer than 30 paid claims, and is explicitly not a cohort-wide turnaround measure. Payer/provider denial tables label the denied numerator and all-claim denominator beside each observed rate.
+### Architecture
 
-The UI uses an indigo palette aligned with the local design reference. The reference assets remain local and are not part of the public repository. The Executive Overview was visually reviewed at 1440×1000, 1024×900, and 390×844. Its six KPI cards reflow from six columns on wide desktop to three on tablet and two on phone. Filters have visible borders and keyboard focus, the CSV action uses a high-contrast indigo treatment, and chart labels use darker text.
-
-**Executive Overview screenshot:**
-
-![RCM360 Executive Overview dashboard](docs/images/executive-overview.png)
+```mermaid
+flowchart LR
+    ZIP[Verified Misata archive] --> ETL[Typed Python loader]
+    ETL --> PG[(Local PostgreSQL)]
+    PG --> SQL[28 SQL analyses and QA rules]
+    SQL --> CHECK[Source and financial reconciliation]
+    CHECK --> JSON[Validated dashboard JSON]
+    JSON --> APP[Streamlit dashboard]
+```
 
 ## KPI definitions and SQL crosswalk
-
-Dashboard figures use the claim-level export after shared filters are applied. The regression test `test_committed_exports_match_executive_overview_kpis` reads the committed privacy-minimized exports, recomputes each Executive Overview KPI from claim records, and compares those values with the dashboard's production KPI builder. It also checks the exact claim count and source financial totals documented above.
 
 | Dashboard measure | Definition | SQL or evidence |
 | --- | --- | --- |
 | Total claims | Unique `claim_id` rows in the filtered cohort | Q03; Q26 reconciliation |
 | Billed amount | Sum of source `billed_amount` | Q11; Q26 reconciliation |
-| Payer payments | Sum of source `paid_amount` (`payer_paid_amount` in JSON); not total collections | Q11; Q26 reconciliation |
+| Payer payments | Sum of source `paid_amount`; not total collections | Q11; Q26 reconciliation |
 | Denied claims | Claim rows with observed `status = 'denied'` | Q03; Q04 payer groups; Q05 provider groups |
-| Observed denial rate | Denied claim count divided by all claim rows in the cohort; payer/provider tables expose both counts | Q03–Q05; Q28 by submission month |
-| Denial reason frequency | Denied claims with a recorded reason; no root cause is inferred | Q07; Q08 reason incidence |
-| P50/P90 payment timing | Discrete percentiles of `submission_to_payment_days` for paid claims with recorded duration, grouped by payer | Q17 payer roll-up; Q17 also reports payer/encounter-type detail |
-| Claims with QA findings | Unique filtered claim IDs with linkable original-source QA issues; injected-test issues are excluded | `quality.json` original section and the shared data contract |
+| Observed denial rate | Denied claims divided by all claims in the cohort | Q03–Q05; Q28 by submission month |
+| Denial reason frequency | Denied claims with a recorded reason; no root cause is inferred | Q07; Q08 |
+| P50/P90 payment timing | Discrete percentiles of recorded `submission_to_payment_days` for paid claims, by payer | Q17 |
+| Claims with QA findings | Unique filtered claim IDs with linkable original-source QA issues; injected test issues excluded | `quality.json` original section and data contract |
 
-Percentiles use the same discrete observed-value rule as PostgreSQL `percentile_disc`; values are never interpolated. All timing results describe the paid subset. Monthly denial rates describe current status by submission cohort because the dataset has no observation cutoff or maturity window.
+Payment percentiles use PostgreSQL `percentile_disc` semantics: they select observed values and do not interpolate. The results describe the paid subset, not cohort-wide turnaround or claim aging.
 
 ## Technology stack
 
-| Area | Tools |
+| Area | Technologies |
 | --- | --- |
-| Data and ETL | Python 3.11, Pandas, NumPy |
+| Data loading and exports | Python 3.11, Pandas, NumPy |
 | Relational analysis | PostgreSQL, SQL, SQLAlchemy, Psycopg |
-| QA and reconciliation | PostgreSQL temporary-table audits, deterministic injected cases, exact Python `Decimal` checks |
+| QA and reconciliation | PostgreSQL checks, deterministic injected cases, Python `Decimal` |
 | Dashboard | Streamlit, CSS, Plotly, JSON |
 | Exploratory analysis | Jupyter, Matplotlib, Seaborn |
 | Tests and SQL parsing | Pytest, Pglast |
 
-## Repository map
-
-```text
-dashboard/       Five-page Streamlit app and JSON contract
-docs/            Data profile, business questions, and data contract
-notebooks/       Aggregate-only source EDA notebook
-sql/             PostgreSQL schema, view, 28 queries, and QA rules
-src/             Verified loader, source audit, and JSON exporter
-tests/            Data, QA, exporter, and dashboard tests
-```
-
-Raw CSVs, local audit reports, credentials, the HTML design reference, and internal planning files remain outside the public Git tree.
-
 ## Run locally
 
-Use Python 3.11 and a local PostgreSQL server. The source ZIP and its seven CSV members must be in `data/raw/`; verify the pinned hash and placement using [data/raw/README.md](data/raw/README.md). The raw inputs are ignored by Git.
+### Open the populated dashboard
+
+The committed, validated JSON exports let you run the dashboard without a database connection.
 
 ```powershell
+git clone https://github.com/emam26/RCM360-Healthcare-Analytics.git
+cd RCM360-Healthcare-Analytics
+
 py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
 ```
 
-Set `DATABASE_URL` only in the local PowerShell session. Use a local database role; do not commit `.env` or paste credentials into chat.
+Streamlit prints the local URL after startup.
+
+### Rebuild the data and exports
+
+For the full data workflow, use a local PostgreSQL installation and the approved source archive. Place the source ZIP and its seven CSV members in `data/raw/`; see the [raw-data instructions](data/raw/README.md) for the pinned hash and placement rules. Raw inputs and database credentials are excluded from Git.
+
+Set `DATABASE_URL` in your local PowerShell session. Never commit `.env` files or share database credentials.
 
 ```powershell
 $env:DATABASE_URL = "postgresql://<local-user>:<local-password>@localhost:5432/rcm360"
 ```
 
-Load and verify the approved snapshot:
+Load the source tables and execute the analyses using the [SQL query catalog](sql/queries/README.md):
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.etl.load_postgres
 ```
 
-Run all 28 read-only analyses using the exact commands in the [SQL query catalog](sql/queries/README.md). Review the reconciliation queries before interpreting results. Run the [QA audit](sql/quality_checks/README.md); its full local report is written to ignored `data/processed/quality_audit.json`, while standard output contains the public-safe projection.
-
-Generate dashboard files only after PostgreSQL successfully reconciles every source table and claim-view amount:
+Run the [QA audit](sql/quality_checks/README.md), review the reconciliation queries, and generate exports only after PostgreSQL and source totals reconcile:
 
 ```powershell
 .\.venv\Scripts\python.exe -m src.exports.dashboard_json
-.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
 ```
 
-The exporter writes `dashboard/data/claims.json` and `dashboard/data/quality.json`. It checks the archive hash, verifies every PostgreSQL source table against the pinned snapshot, reconciles exact claim counts and amounts, validates the dashboard contract, and keeps injected QA issue details out of public output.
+The exporter validates the archive hash, source-table counts and claim totals against the database, checks the dashboard contract, and excludes injected QA issue details from public output.
 
-For source EDA, open the [notebook](notebooks/eda.ipynb) after placing the archive and extracted files in `data/raw/`:
-
-```powershell
-.\.venv\Scripts\jupyter.exe lab notebooks/eda.ipynb
-```
-
-The notebook rechecks the archive and extracted-member bytes. It displays aggregate summaries and plots, not row-level records or identifier values; committed notebook outputs are cleared.
-
-## Tests
-
-Run the complete local test suite from the repository root:
+## Validation
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
 .\.venv\Scripts\python.exe -m pip check
 ```
 
-Current result: **51 tests and 48 subtests passed**; `pip check` reported no broken requirements. The suite includes exact discrete-percentile checks and a regression test that recomputes Executive Overview KPIs from the committed claims/quality exports, then compares them with the production KPI builder and exact source totals. Data/export and dashboard tests also use isolated contracts and fixtures. SQL grammar parsing does not execute queries. Passing local tests therefore does not establish database query execution. The populated dashboard was inspected locally at desktop, tablet, and phone widths; the Executive Overview's KPI layout and filter focus states were checked in a browser.
+Latest local result: **51 tests and 48 subtests passed**; `pip check` reported no broken requirements. The suite includes committed-export KPI consistency and discrete-percentile checks. The SQL parser accepted all 28 statements; parsing does not execute the queries. The latest review could not independently connect to local PostgreSQL, so query-by-query database execution is not claimed here.
 
-## Deployment status
+The populated Executive Overview and Revenue & Payments pages were visually inspected locally. The screenshot above is stored in `docs/images/`; the source HTML design reference is maintained locally and is not included in this public repository.
 
-The repository has the root `requirements.txt`, root `.streamlit/config.toml`, root entrypoint `streamlit_app.py`, and validated exports required by Streamlit Community Cloud. The dashboard implementation remains in `dashboard/app.py`. No credentials or direct patient identifiers are included in the published files.
+## Repository map
 
-Pushing to the GitHub branch connected to the existing Community Cloud app can trigger an app update. Check the Streamlit deployment status after the repository push. See the [official deploy guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) and [dependency guide](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/app-dependencies).
+| Path | Purpose |
+| --- | --- |
+| `dashboard/` | Five-page Streamlit app, validated JSON exports, and dashboard contract |
+| `docs/` | Dataset profile, business questions, and data contract |
+| `notebooks/` | Aggregate-only exploratory analysis |
+| `sql/` | PostgreSQL schema, views, 28 queries, and QA rules |
+| `src/` | Source verification, loader, audits, and JSON exporter |
+| `tests/` | Data, export, QA, and dashboard tests |
+
+Raw source files, local audit reports, credentials, the HTML design reference, and internal planning files are not included in the public Git tree.
+
+## Deployment status and limitations
+
+The repository includes the root Streamlit entrypoint, dependency files, configuration, and validated exports needed for Streamlit Community Cloud. The app reads JSON exports and does not require database credentials at runtime. A push to a connected GitHub branch may trigger a Community Cloud update; hosted deployment status was not independently verified during the latest review.
+
+The project is a focused analytics portfolio, not a production billing application. PostgreSQL remains the required source of query execution and reconciliation evidence; the dashboard is a read-only presentation of validated exports.
 
 ## Project references
 
