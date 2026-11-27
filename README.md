@@ -12,7 +12,6 @@
 
 RCM360 examines claim status, denial patterns, source-reported financial fields, payer/provider cohorts, and relational data quality. It uses Python for loading and exports, PostgreSQL for relational analysis and reconciliation, and Streamlit for an interactive dashboard.
 
-This is an analytical demonstration, not a billing system. Findings describe a synthetic dataset and should not be interpreted as real-world payer or provider performance.
 
 ## Explore the dashboard
 
