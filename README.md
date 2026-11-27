@@ -1,6 +1,6 @@
 # RCM360
 
-**An auditable healthcare revenue cycle analytics and data quality portfolio.**
+**Healthcare revenue cycle analytics for claims, denials, payments, and data quality.**
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
