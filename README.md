@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Healthcare data](https://img.shields.io/badge/Healthcare%20data-Misata%20synthetic-0F766E)](https://www.misata.studio/datasets/hospital-encounters-claims)
-> ![What I learned](https://img.shields.io/badge/What_I_learned-SQL_%26_healthcare_analytics-5145B8?style=flat-square)
+ ![What I learned](https://img.shields.io/badge/What_I_learned-SQL_%26_healthcare_analytics-5145B8?style=flat-square)
 
 ### [**Open the current RCM360 dashboard**](https://rcm360-healthcare-analytics.streamlit.app/)
 
