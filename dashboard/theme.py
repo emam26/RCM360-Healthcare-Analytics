@@ -75,11 +75,8 @@ section[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] lab
   padding: 0 30px; background: #fff; border-bottom: 1px solid var(--rcm-line);
   display: flex; align-items: center;
 }
-.st-key-rcm-topbar [data-testid="stHorizontalBlock"] { align-items: center; }
 .st-key-rcm-topbar p { margin: 0; font-size: 12px; color: var(--rcm-muted); }
 .st-key-rcm-topbar strong { color: var(--rcm-ink); font-weight: 600; }
-.rcm-topbar-right { display: flex; width: 100%; justify-content: flex-end; align-items: center; }
-.rcm-avatar { display: grid; flex: 0 0 34px; width: 34px; height: 34px; margin-left: auto; place-items: center; border-radius: 50%; background: #EEEBFC; color: #5446A1; font-size: 10px; font-weight: 800; }
 .st-key-rcm-heading { margin-bottom: 20px; gap: 6px; }
 .st-key-rcm-heading [data-testid="stHorizontalBlock"] { align-items: center; gap: 20px; }
 .st-key-rcm-heading [data-testid="column"]:last-child { display: flex; justify-content: flex-end; }
@@ -257,8 +254,6 @@ h2, h3 { color: var(--rcm-ink); font-size: 14px; letter-spacing: -.2px; }
   .st-key-rcm-heading-action .stElementContainer { width: 100%; align-self: stretch; }
   .st-key-rcm-heading-action [data-testid="stDownloadButton"] button,
   .st-key-rcm-heading-action [data-testid="stButton"] button { width: 100%; min-width: 0; }
-  .st-key-rcm-topbar [data-testid="stHorizontalBlock"] { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-  .st-key-rcm-topbar [data-testid="column"] { width: auto !important; }
   .st-key-rcm-table-controls [data-testid="stHorizontalBlock"] { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .st-key-rcm-table-controls [data-testid="column"] { width: auto !important; }
   .st-key-rcm-table-controls [data-testid="column"]:first-child { grid-column: 1 / -1; }

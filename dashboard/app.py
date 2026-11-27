@@ -612,12 +612,7 @@ def render_brand_and_nav() -> str:
 
 def render_topbar(page_title: str) -> None:
     with st.container(key="rcm-topbar"):
-        breadcrumb, identity = st.columns([1.5, 1], vertical_alignment="center")
-        breadcrumb.markdown(f"Analytics&nbsp;&nbsp;›&nbsp;&nbsp;<strong>{escape(page_title)}</strong>", unsafe_allow_html=True)
-        identity.markdown(
-            "<div class='rcm-topbar-right'><span class='rcm-avatar' aria-label='Data analyst profile'>DA</span></div>",
-            unsafe_allow_html=True,
-        )
+        st.markdown(f"Analytics&nbsp;&nbsp;›&nbsp;&nbsp;<strong>{escape(page_title)}</strong>", unsafe_allow_html=True)
 
 
 def render_heading(page: int, export_rows: list[Claim], verified: bool) -> None:
